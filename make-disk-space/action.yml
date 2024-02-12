@@ -1,0 +1,84 @@
+name: 'Remove unused tools from the runner'
+author: 'Altan Orhon'
+description: 'This action will remove the tools that are not needed for the workflow from the runner'
+inputs:
+  rm-android:
+    description: "Whether to remove Android tools"
+    default: 'true'
+  rm-dotnet:
+    description: "Whether to remove .NET tools"
+    default: 'true'
+  rm-hosted-tool-cache:
+    description: "Whether to remove the hosted tool cache"
+    default: 'true'
+  rm-powershell:
+    description: "Whether to remove PowerShell"
+    default: 'true'
+  rm-swift:
+    description: "Whether to remove Swift"
+    default: 'true'
+  rm-chromium:
+    description: "Whether to remove Chromium"
+    default: 'true'
+  rm-azure-cli:
+    description: "Whether to remove Azure CLI"
+    default: 'true'
+  rm-apt-packages:
+    description: "Remove apt packages"
+    default: 'false'
+  rm-apt-cache:
+    description: "Clear apt cache"
+    default: 'false'
+  apt-packages-remove-default:
+    description: "Packages to remove"
+    default: 'ansible azure-cli xorriso zsync esl-erlang firefox gfortran-8 gfortran-9 google-chrome-stable google-cloud-sdk imagemagick libmagickcore-dev libmagickwand-dev libmagic-dev ant ant-optional kubectl mercurial mono-complete libmysqlclient unixodbc-dev yarn chrpath libssl-dev libxft-dev libfreetype6 libfreetype6-dev libfontconfig1 libfontconfig1-dev snmp pollinate libpq-dev postgresql-client powershell ruby-full sphinxsearch subversion mongodb-org azure-cli microsoft-edge-stable google-cloud-sdk'
+  apt-packages-remove-include:
+    description: "Additional packages to remove"
+  apt-packages-remove-exclude:
+    description: "Packages to keep"
+  
+runs:
+  using: 'composite'
+  steps:
+    - name: Show disk usage
+      shell: bash
+      run: |
+        echo "Disk usage before cleanup:"
+        df -hlT / /mnt
+    - name: Remove tools
+      shell: bash
+      if: ${{ inputs.rm-android == 'true' || inputs.rm-dotnet == 'true' || inputs.rm-haskell == 'true' || inputs.rm-hosted-tool-cache == 'true' }}
+      run: |
+          set -eEux -o pipefail
+          [[ "${{ inputs.rm-android }}" == "true" ]] && sudo du -s -h /usr/local/lib/android && sudo rm -rf "$_" && echo "::notice::Removed Android tools"
+          [[ "${{ inputs.rm-dotnet }}" == "true" ]] && sudo du -s -h /usr/share/dotnet && sudo rm -rf "$_" && echo "::notice::Removed .NET tools"
+          [[ "${{ inputs.rm-hosted-tool-cache }}" == "true" ]] && sudo du -s -h /opt/hostedtoolcache && sudo rm -rf "$_" && echo "::notice::Removed the hosted tool cache"
+          [[ "${{ inputs.rm-powershell }}" == "true" ]] && sudo du -s -h /usr/local/share/powershell && sudo rm -rf "$_" && echo "::notice::Removed PowerShell"
+          [[ "${{ inputs.rm-swift }}" == "true" ]] && sudo du -s -h /usr/share/swift && sudo rm -rf "$_" && echo "::notice::Removed Swift"
+          [[ "${{ inputs.rm-chromium }}" == "true" ]] && sudo du -s -h /usr/local/share/chromium && sudo rm -rf "$_" && echo "::notice::Removed Chromium"
+          [[ "${{ inputs.rm-azure-cli }}" == "true" ]] && sudo du -s -h /opt/az && sudo rm -rf "$_" /usr/share/az_* &&  echo "::notice::Removed Azure CLI"
+    - name: Remove apt packages
+      shell: bash
+      if: ${{ inputs.rm-apt-packages == 'true' }}
+      run: |
+        set -eux -o pipefail
+        if [[ "${{ inputs.rm-apt-packages }}" == "true" ]]; then
+          declare -a packages=()
+          comm -23 <(echo "${{inputs.apt-packages-remove-default}} ${{inputs.apt-packages-remove-include}}" | tr ' ' '\n' | sort | uniq) <(echo "${{inputs.apt-packages-remove-exclude}}" | tr ' ' '\n' | sort | uniq) | while read -r package; do
+            packages+=("$package")
+          done
+          if [[ "${#packages[@]}" -gt 0 ]]; then
+            sudo apt-get purge -yq "${packages[@]}" && echo "::notice::Removed apt packages"
+            sudo apt-get autoremove -y && echo "::notice::Removed unused apt packages"
+          fi
+    - name: Clear apt cache
+      if: ${{ inputs.rm-apt-cache == 'true' || inputs.rm-apt-packages == 'true' }}
+      shell: bash
+      run: |
+        sudo apt-get clean -y && echo "::notice::Cleaned apt cache"
+    - name: Show disk usage
+      shell: bash
+      run: |
+        echo "Disk usage after cleanup:"
+        df -hlT / /mnt
+  

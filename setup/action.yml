@@ -1,0 +1,103 @@
+name: 'Set up Apptainer and oras'
+author: 'Altan Orhon'
+description: 'This action will install Apptainer and oras on the runner'
+inputs:
+  apptainer-version:
+    description: "Version of Apptainer to install"
+    default: 'latest'
+  oras-version:
+    description: "Version of oras to install"
+    default: 'latest'
+  download-dir:
+    description: "Directory to download the Apptainer and oras deb and tar.gz files to"
+    default: '.'
+outputs:
+  apptainer-version:
+    description: 'The installed version of Apptainer'
+  oras-version:
+    description: 'The installed version of oras'
+runs:
+  using: 'composite'
+  steps:
+    - name: Install Apptainer
+      env:
+        APPTAINER_VERSION: ${{ inputs.apptainer-version }}
+        DOWNLOAD_DIR: ${{ inputs.download-dir }}
+        GH_TOKEN: ${{ github.token }}
+      shell: bash
+      run: |
+          set -eux -o pipefail
+          # Install the latest Apptainer deb:
+          echo >&2 "Installing Apptainer..."
+          TAGNAME="${APPTAINER_VERSION}"
+          RELEASE_REPO=apptainer/apptainer
+
+          # If the tagname is "latest", get the latest tag:
+          if [[ "${TAGNAME}" == "latest" ]]; then
+            TAGNAME="$(gh release view --repo "${RELEASE_REPO}" --json tagName -t '{{.tagName}}' | head -n 1)"
+          else
+            # If the tagname is not "latest", check if it exists:
+
+            # If the tagname does not start with a "v", add it:
+            case "${TAGNAME}" in
+            v*) ;;
+            *) TAGNAME="v${TAGNAME}" ;;
+            esac
+
+            gh release view "${TAGNAME}" --repo "${RELEASE_REPO}" --json tagName -t '{{.tagName}}' | grep -q "${TAGNAME}" || { echo >&2 "Tag \"${TAGNAME}\" does not exist for \"${RELEASE_REPO}\""; exit 1; }
+          fi
+
+          # Download the deb:
+          DOWNLOAD_PATH="${DOWNLOAD_DIR:-.}/apptainer_${TAGNAME}_amd64.deb"
+          gh release download "${TAGNAME}" --repo "${RELEASE_REPO}" --pattern 'apptainer_*_amd64.deb' --skip-existing -O "${DOWNLOAD_PATH}"
+
+          # Install the deb:
+          export DEBIAN_FRONTEND=noninteractive
+          sudo apt-get update -yq  || echo "Couldn't update apt packages. Will attempt installation without update" >&2
+          sudo dpkg --install --force-depends "${DOWNLOAD_PATH}" && sudo apt-get install --fix-broken --yes --quiet
+
+          # Print the version:
+          apptainer --version >&2
+          echo "apptainer-version=$(apptainer version)" >> "${GITHUB_OUTPUT}"
+          echo "::notice::Installed Apptainer version: $(apptainer version)"
+    
+    - name: Install oras
+      env:
+        ORAS_VERSION: ${{ inputs.oras-version }}
+        DOWNLOAD_DIR: ${{ inputs.download-dir }}
+        GH_TOKEN: ${{ github.token }}
+      shell: bash
+      run: |
+        set -eux -o pipefail
+        # Install the latest oras:
+        echo >&2 "Installing oras..."
+        TAGNAME="${ORAS_VERSION}"
+        RELEASE_REPO=oras-project/oras
+
+        # If the tagname is "latest", get the latest tag:
+        if [[ "${TAGNAME}" == "latest" ]]; then
+          TAGNAME="$(gh release view --repo "${RELEASE_REPO}" --json tagName -t '{{.tagName}}' | head -n 1)"
+        else
+          # If the tagname is not "latest", check if it exists:
+
+          # If the tagname does not start with a "v", add it:
+          case "${TAGNAME}" in
+          v*) ;;
+          *) TAGNAME="v${TAGNAME}" ;;
+          esac
+
+          gh release view "${TAGNAME}" --repo "${RELEASE_REPO}" --json tagName -t '{{.tagName}}' | grep -q "${TAGNAME}" || { echo >&2 "Tag \"${TAGNAME}\" does not exist for \"${RELEASE_REPO}\""; exit 1; }
+        fi
+
+        # Download the latest ORAS archive:
+        DOWNLOAD_PATH="${DOWNLOAD_DIR:-.}/oras_${TAGNAME}_amd64.tar.gz"
+
+        gh release download "${TAGNAME}" --repo "${RELEASE_REPO}" --pattern '*linux_amd64.tar.gz' --skip-existing -O "${DOWNLOAD_PATH}"
+
+        # Install the executable:
+        sudo tar -xvf "${DOWNLOAD_PATH}" oras -C /usr/local/bin/ && sudo chmod +x /usr/local/bin/oras
+
+        # Print the version:
+        oras version >&2
+        echo "oras-version=$(oras version | awk 'NR==1 {print $2}')" >> "${GITHUB_OUTPUT}"
+        echo "::notice::Installed oras version $(oras version | awk 'NR==1 {print $2}')"
