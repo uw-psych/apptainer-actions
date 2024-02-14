@@ -60,12 +60,11 @@ outputs:
   image-url:
     description: "URL to the built image"
 
-defaults:
-  run:
-    shell: bash
-
 runs:
   using: 'composite'
+  defaults:
+    run:
+      shell: bash
   steps:
     - id: env
       name: Set environment variables
