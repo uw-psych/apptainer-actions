@@ -11,26 +11,26 @@ inputs:
   disable-cache:
     description: "Do not use cache when building the image"
     default: 'true'
-   fakeroot:
+  fakeroot:
     description: "Build with the appearance of running as root (default when building from a definition file unprivileged)"
-   fix-perms:
+  fix-perms:
     description: "Ensure owner has rwX permissions on all container content for oci/docker sources"
-   force:
+  force:
     description: "Force image build even if it exists"
     default: 'true'
   json:
     description: "interpret build definition as JSON"
-   mount:
+  mount:
     description: "List of mount specifications, e.g. 'type=bind,source=/opt,destination=/hostopt'"
   notest:
     description: "Skip the %test section"
-   section:
+  section:
     description: "Only run specific section(s) of deffile (setup, post, files, environment, test, labels, none) (default [all])"
   update:
     description: "Run definition over existing container (skips header)"
-   userns:
+  userns:
     description: "Build with the appearance of running as root (default when building from a definition file unprivileged)"
-   writable-tmpfs:
+  writable-tmpfs:
     description: "During the %test section, makes the file system accessible as read-write with non  persistent data (with overlay support only)"
  
   # Metadata options
