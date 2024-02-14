@@ -62,9 +62,7 @@ outputs:
 
 runs:
   using: 'composite'
-  defaults:
-    run:
-      shell: bash
+
   steps:
     - id: env
       name: Set environment variables
@@ -137,18 +135,24 @@ runs:
     - id: find-deffile
       name: Find definition file
       run: ${GITHUB_ACTION_PATH}/scripts/${GITHUB_ACTION}.sh
+      shell: bash
     - id: create-labels
       name: Create image labels
       run: ${GITHUB_ACTION_PATH}/scripts/${GITHUB_ACTION}.sh
+      shell: bash
     - id: build-container
       name: Build container
       run: ${GITHUB_ACTION_PATH}/scripts/${GITHUB_ACTION}.sh
+      shell: bash
     - id: push-container
       name: Push container
       run: ${GITHUB_ACTION_PATH}/scripts/${GITHUB_ACTION}.sh
+      shell: bash
     - id: tag-container
       name: "Tag container"
       run: "${GITHUB_ACTION_PATH}/scripts/${GITHUB_ACTION}.sh"
+      shell: bash
     - id: update-oci-manifest
       name: Update OCI manifest
       run: "${GITHUB_ACTION_PATH}/scripts/${GITHUB_ACTION}.sh"
+      shell: bash
