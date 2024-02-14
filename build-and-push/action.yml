@@ -87,7 +87,7 @@ runs:
           INPUT_ADD_TAGS: ${{ inputs.add-tags }}
           INPUT_DEFFILE: ${{ inputs.deffile }}
           INPUT_DEFFILES_ROOTDIR: ${{ inputs.deffiles-rootdir }}
-          INPUT_IMAGE_NAME: ${{ inputs.name }}
+          INPUT_IMAGE_NAME: ${{ inputs.image-name }}
           INPUT_IMAGE_URL: ${{ inputs.image-url }}
           INPUT_IMAGE_VERSION: ${{ inputs.image-version }}
           XTRACE: 1
