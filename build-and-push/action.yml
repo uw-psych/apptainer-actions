@@ -62,9 +62,6 @@ outputs:
 
 runs:
   using: 'composite'
-  defaults:
-    run:
-      shell: bash
   steps:
     - id: env
       name: Set environment variables
@@ -92,6 +89,7 @@ runs:
           INPUT_IMAGE_VERSION: ${{ inputs.image-version }}
           XTRACE: 1
           GH_TOKEN: ${{ github.token }}
+      shell: bash
       run: |
         echo INPUT_BIND="${INPUT_BIND:-}" >> "${GITHUB_ENV}"
         echo INPUT_BUILD_ARGS="${INPUT_BUILD_ARGS:-}" >> "${GITHUB_ENV}"
@@ -120,6 +118,7 @@ runs:
         [[ -n "${GITHUB_TOKEN:-}" ]] && echo GITHUB_TOKEN="${GITHUB_TOKEN}" >> "${GITHUB_ENV}" && echo "GH_TOKEN=${GITHUB_TOKEN}" >> "${GITHUB_ENV}"
     - id: check-prereqs
       name: Check prerequisites
+      shell: bash
       run: |
         command -v jq >/dev/null 2>&1 || { echo "jq is required but not found" >&2; exit 1; }
         command -v gh >/dev/null 2>&1 || { echo "gh is required but not found" >&2; exit 1; }
