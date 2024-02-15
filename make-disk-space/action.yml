@@ -61,7 +61,7 @@ runs:
                 IFS=' ' read post < <(df --output=avail "${device}" | tail +2 | head -n 1)
                 # Convert to human readable format
                 diff=$((post - pre))
-                echo "Removed $1: $(numfmt --to=iec-i "${diff}")"
+                echo "::notice::Removed directory \"$1\": $(numfmt --to=iec-i "${diff}")"
               else
                 echo "Directory $1 does not exist"
               fi 
@@ -69,13 +69,13 @@ runs:
             done
           }
 
-          [[ "${{ inputs.rm-android }}" == "true" ]] && rm_with_usage /usr/local/lib/android && echo "::notice::Removed Android tools"
-          [[ "${{ inputs.rm-dotnet }}" == "true" ]] && rm_with_usage /usr/share/dotnet && sudo rm -rf "$_" && echo "::notice::Removed .NET tools"
-          [[ "${{ inputs.rm-hosted-tool-cache }}" == "true" ]] && rm_with_usage /opt/hostedtoolcache && echo "::notice::Removed the hosted tool cache"
-          [[ "${{ inputs.rm-powershell }}" == "true" ]] && rm_with_usage /usr/local/share/powershell && echo "::notice::Removed PowerShell"
-          [[ "${{ inputs.rm-swift }}" == "true" ]] && rm_with_usage /usr/share/swift && echo "::notice::Removed Swift"
-          [[ "${{ inputs.rm-chromium }}" == "true" ]] && rm_with_usage /usr/local/share/chromium && echo "::notice::Removed Chromium"
-          [[ "${{ inputs.rm-azure-cli }}" == "true" ]] && rm_with_usage /opt/az /usr/share/az_* && echo "::notice::Removed Azure CLI"
+          [[ "${{ inputs.rm-android }}" == "true" ]] && rm_with_usage /usr/local/lib/android
+          [[ "${{ inputs.rm-dotnet }}" == "true" ]] && rm_with_usage /usr/share/dotnet
+          [[ "${{ inputs.rm-hosted-tool-cache }}" == "true" ]] && rm_with_usage /opt/hostedtoolcache
+          [[ "${{ inputs.rm-powershell }}" == "true" ]] && rm_with_usage /usr/local/share/powershell
+          [[ "${{ inputs.rm-swift }}" == "true" ]] && rm_with_usage /usr/share/swift
+          [[ "${{ inputs.rm-chromium }}" == "true" ]] && rm_with_usage /usr/local/share/chromium
+          [[ "${{ inputs.rm-azure-cli }}" == "true" ]] && rm_with_usage /opt/az /usr/share/az_*
       
     - name: Remove apt packages
       shell: bash
@@ -88,8 +88,8 @@ runs:
             packages+=("$package")
           done
           if [[ "${#packages[@]}" -gt 0 ]]; then
-            sudo apt-get purge -yq "${packages[@]}" && echo "::notice::Removed apt packages"
-            sudo apt-get autoremove -y && echo "::notice::Removed unused apt packages"
+            sudo apt-get purge -yq "${packages[@]}"
+            sudo apt-get autoremove -y
           fi
     - name: Clear apt cache
       if: ${{ inputs.rm-apt-cache == 'true' || inputs.rm-apt-packages == 'true' }}
