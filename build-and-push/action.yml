@@ -88,19 +88,16 @@ runs:
           INPUT_IMAGE_NAME: ${{ inputs.image-name }}
           INPUT_IMAGE_URL: ${{ inputs.image-url }}
           INPUT_IMAGE_VERSION: ${{ inputs.image-version }}
+          BUILD_LABELS_PATH: ${{ runner.temp }}/.build.labels
+          GITHUB_TOKEN: ${{ github.token }}  
           XTRACE: 1
-      
       shell: bash
       run: |
-        for var in "${!INPUT_@}"; do
-          echo "${var}=${!var}" >> "${GITHUB_ENV}"
+        set -eEx -o pipefail
+        for var in ${!INPUT_@} XTRACE BUILD_LABELS_PATH GITHUB_TOKEN; do
+          [[ -n "${!var}" ]] && echo "${var}=\"${!var}\"" >> "${GITHUB_ENV}"
         done
-        
-        echo BUILD_LABELS_PATH="${BUILD_LABELS_PATH:-${RUNNER_TEMP:-/tmp}/.build.labels}" >> "${GITHUB_ENV}"
-        echo XTRACE="${XTRACE:-0}" >> "${GITHUB_ENV}"
-        GITHUB_TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-}}"
-        [[ -n "${GITHUB_TOKEN:-}" ]] && echo GITHUB_TOKEN="${GITHUB_TOKEN}" >> "${GITHUB_ENV}" && echo "GH_TOKEN=${GITHUB_TOKEN}" >> "${GITHUB_ENV}"
-        
+        printenv
     - id: check-prereqs
       name: Check prerequisites
       shell: bash
@@ -109,13 +106,6 @@ runs:
         command -v gh >/dev/null 2>&1 || { echo "gh is required but not found" >&2; exit 1; }
         command -v apptainer >/dev/null 2>&1 || { echo "apptainer is required but not found" >&2; exit 1; }
         command -v oras >/dev/null 2>&1 || { echo "oras is required but not found" >&2; exit 1; }
-        if [[ -z "${GITHUB_TOKEN:-}" ]]; then
-          GITHUB_TOKEN="$(gh auth token || true)"
-          if [[ -z "${GITHUB_TOKEN:-}" ]]; then
-            echo "GITHUB_TOKEN is required but not found" >&2
-            exit 1
-          fi
-        fi
     - name: Find definition file
       shell: bash
       run: ${GITHUB_ACTION_PATH}/scripts/find-deffile.sh
