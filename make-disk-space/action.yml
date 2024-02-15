@@ -61,7 +61,7 @@ runs:
                 IFS=' ' read post < <(df --output=avail "${device}" | tail +2 | head -n 1)
                 # Convert to human readable format
                 diff=$((post - pre))
-                echo "::notice::Removed directory \"$1\": $(numfmt --to=iec-i "${diff}")"
+                echo "::notice::Removed directory \"$1\" ($(numfmt --to=iec "${diff}"))"
               else
                 echo "Directory $1 does not exist"
               fi 
