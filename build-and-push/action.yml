@@ -89,47 +89,17 @@ runs:
           INPUT_IMAGE_URL: ${{ inputs.image-url }}
           INPUT_IMAGE_VERSION: ${{ inputs.image-version }}
           XTRACE: 1
-          GH_TOKEN: ${{ github.token }}
-          GITHUB_CONTEXT: ${{ toJson(github) }}
-          JOB_CONTEXT: ${{ toJson(job) }}
-          RUNNER_CONTEXT: ${{ toJson(runner) }}
-          STEP_CONTEXT: ${{ toJson(steps) }}
-          STRATEGY_CONTEXT: ${{ toJson(strategy) }}
-          MATRIX_CONTEXT: ${{ toJson(matrix) }}
-
+      
       shell: bash
       run: |
-        echo INPUT_BIND="${INPUT_BIND:-}" >> "${GITHUB_ENV}"
-        echo INPUT_BUILD_ARGS="${INPUT_BUILD_ARGS:-}" >> "${GITHUB_ENV}"
-        echo INPUT_BUILD_ARG_FILE="${INPUT_BUILD_ARG_FILE:-}" >> "${GITHUB_ENV}"
-        echo INPUT_DISABLE_CACHE="${INPUT_DISABLE_CACHE:-}" >> "${GITHUB_ENV}"
-        echo INPUT_FAKEROOT="${INPUT_FAKEROOT:-}" >> "${GITHUB_ENV}"
-        echo INPUT_FIX_PERMS="${INPUT_FIX_PERMS:-}" >> "${GITHUB_ENV}"
-        echo INPUT_FORCE="${INPUT_FORCE:-}" >> "${GITHUB_ENV}"
-        echo INPUT_JSON="${INPUT_JSON:-}" >> "${GITHUB_ENV}"
-        echo INPUT_MOUNT="${INPUT_MOUNT:-}" >> "${GITHUB_ENV}"
-        echo INPUT_NOTEST="${INPUT_NOTEST:-}" >> "${GITHUB_ENV}"
-        echo INPUT_SECTION="${INPUT_SECTION:-}" >> "${GITHUB_ENV}"
-        echo INPUT_UPDATE="${INPUT_UPDATE:-}" >> "${GITHUB_ENV}"
-        echo INPUT_USERNS="${INPUT_USERNS:-}" >> "${GITHUB_ENV}"
-        echo INPUT_WRITABLE_TMPFS="${INPUT_WRITABLE_TMPFS:-}" >> "${GITHUB_ENV}"
-        echo INPUT_TAGS="${INPUT_TAGS:-}" >> "${GITHUB_ENV}"
-        echo INPUT_ADD_TAGS="${INPUT_ADD_TAGS:-}" >> "${GITHUB_ENV}"
-        echo INPUT_DEFFILE="${INPUT_DEFFILE:-}" >> "${GITHUB_ENV}"
-        echo INPUT_DEFFILES_ROOTDIR="${INPUT_DEFFILES_ROOTDIR:-}" >> "${GITHUB_ENV}"
-        echo INPUT_IMAGE_NAME="${INPUT_IMAGE_NAME:-}" >> "${GITHUB_ENV}"
-        echo INPUT_IMAGE_URL="${INPUT_IMAGE_URL:-}" >> "${GITHUB_ENV}"
-        echo INPUT_IMAGE_VERSION="${INPUT_IMAGE_VERSION:-}" >> "${GITHUB_ENV}"
+        for var in "${!INPUT_@}"; do
+          echo "${var}=${!var}" >> "${GITHUB_ENV}"
+        done
+        
         echo BUILD_LABELS_PATH="${BUILD_LABELS_PATH:-${RUNNER_TEMP:-/tmp}/.build.labels}" >> "${GITHUB_ENV}"
         echo XTRACE="${XTRACE:-0}" >> "${GITHUB_ENV}"
         GITHUB_TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-}}"
         [[ -n "${GITHUB_TOKEN:-}" ]] && echo GITHUB_TOKEN="${GITHUB_TOKEN}" >> "${GITHUB_ENV}" && echo "GH_TOKEN=${GITHUB_TOKEN}" >> "${GITHUB_ENV}"
-        echo "${GITHUB_CONTEXT:-}"
-        echo "${JOB_CONTEXT:-}"
-        echo "${RUNNER_CONTEXT:-}"
-        echo "${STEP_CONTEXT:-}"
-        echo "${STRATEGY_CONTEXT:-}"
-        echo "${MATRIX_CONTEXT:-}"
         
     - id: check-prereqs
       name: Check prerequisites
@@ -146,27 +116,24 @@ runs:
             exit 1
           fi
         fi
-    - id: find-deffile
-      name: Find definition file
-      run: ${GITHUB_ACTION_PATH}/scripts/${GITHUB_ACTION}.sh
+    - name: Find definition file
       shell: bash
-    - id: create-labels
-      name: Create image labels
-      run: ${GITHUB_ACTION_PATH}/scripts/${GITHUB_ACTION}.sh
+      run: ${GITHUB_ACTION_PATH}/scripts/find-deffile.sh
+    - name: Create image labels
       shell: bash
-    - id: build-container
-      name: Build container
-      run: ${GITHUB_ACTION_PATH}/scripts/${GITHUB_ACTION}.sh
+      run: ${GITHUB_ACTION_PATH}/scripts/create-labels.sh
+    - name: Build container
       shell: bash
-    - id: push-container
-      name: Push container
-      run: ${GITHUB_ACTION_PATH}/scripts/${GITHUB_ACTION}.sh
+      run: ${GITHUB_ACTION_PATH}/scripts/build-container.sh
+    - name: Push container
       shell: bash
-    - id: tag-container
-      name: "Tag container"
-      run: "${GITHUB_ACTION_PATH}/scripts/${GITHUB_ACTION}.sh"
+      run: ${GITHUB_ACTION_PATH}/scripts/push-container.sh
+      
+    - name: "Tag container"
+      shell: bash  
+      run: "${GITHUB_ACTION_PATH}/scripts/tag-container.sh"
+      
+    - name: Update OCI manifest
       shell: bash
-    - id: update-oci-manifest
-      name: Update OCI manifest
-      run: "${GITHUB_ACTION_PATH}/scripts/${GITHUB_ACTION}.sh"
-      shell: bash
+      run: "${GITHUB_ACTION_PATH}/scripts/update-oci-manifest.sh"
+      
