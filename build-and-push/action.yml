@@ -90,6 +90,13 @@ runs:
           INPUT_IMAGE_VERSION: ${{ inputs.image-version }}
           XTRACE: 1
           GH_TOKEN: ${{ github.token }}
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+          JOB_CONTEXT: ${{ toJson(job) }}
+          RUNNER_CONTEXT: ${{ toJson(runner) }}
+          STEP_CONTEXT: ${{ toJson(steps) }}
+          STRATEGY_CONTEXT: ${{ toJson(strategy) }}
+          MATRIX_CONTEXT: ${{ toJson(matrix) }}
+
       shell: bash
       run: |
         echo INPUT_BIND="${INPUT_BIND:-}" >> "${GITHUB_ENV}"
@@ -117,7 +124,13 @@ runs:
         echo XTRACE="${XTRACE:-0}" >> "${GITHUB_ENV}"
         GITHUB_TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-}}"
         [[ -n "${GITHUB_TOKEN:-}" ]] && echo GITHUB_TOKEN="${GITHUB_TOKEN}" >> "${GITHUB_ENV}" && echo "GH_TOKEN=${GITHUB_TOKEN}" >> "${GITHUB_ENV}"
-        printenv
+        echo "${GITHUB_CONTEXT:-}"
+        echo "${JOB_CONTEXT:-}"
+        echo "${RUNNER_CONTEXT:-}"
+        echo "${STEP_CONTEXT:-}"
+        echo "${STRATEGY_CONTEXT:-}"
+        echo "${MATRIX_CONTEXT:-}"
+        
     - id: check-prereqs
       name: Check prerequisites
       shell: bash
