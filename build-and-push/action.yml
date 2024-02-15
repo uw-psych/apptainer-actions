@@ -117,6 +117,7 @@ runs:
         echo XTRACE="${XTRACE:-0}" >> "${GITHUB_ENV}"
         GITHUB_TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-}}"
         [[ -n "${GITHUB_TOKEN:-}" ]] && echo GITHUB_TOKEN="${GITHUB_TOKEN}" >> "${GITHUB_ENV}" && echo "GH_TOKEN=${GITHUB_TOKEN}" >> "${GITHUB_ENV}"
+        printenv
     - id: check-prereqs
       name: Check prerequisites
       shell: bash
