@@ -95,9 +95,10 @@ runs:
       run: |
         set -eEx -o pipefail
         for var in ${!INPUT_@} XTRACE BUILD_LABELS_PATH GITHUB_TOKEN; do
-          [[ -n "${!var}" ]] && echo "${var}=\"${!var}\"" >> "${GITHUB_ENV}"
+          [[ -n "${!var}" ]] && echo "${var}=${!var}" >> "${GITHUB_ENV}"
         done
         printenv
+    
     - id: check-prereqs
       name: Check prerequisites
       shell: bash
@@ -106,15 +107,19 @@ runs:
         command -v gh >/dev/null 2>&1 || { echo "gh is required but not found" >&2; exit 1; }
         command -v apptainer >/dev/null 2>&1 || { echo "apptainer is required but not found" >&2; exit 1; }
         command -v oras >/dev/null 2>&1 || { echo "oras is required but not found" >&2; exit 1; }
+    
     - name: Find definition file
       shell: bash
       run: ${GITHUB_ACTION_PATH}/scripts/find-deffile.sh
+    
     - name: Create image labels
       shell: bash
       run: ${GITHUB_ACTION_PATH}/scripts/create-labels.sh
+    
     - name: Build container
       shell: bash
       run: ${GITHUB_ACTION_PATH}/scripts/build-container.sh
+    
     - name: Push container
       shell: bash
       run: ${GITHUB_ACTION_PATH}/scripts/push-container.sh
