@@ -27,7 +27,7 @@ fi
 
 # Set the image version:
 if [[ -z "${INPUT_IMAGE_VERSION:-}" ]]; then
-	INPUT_IMAGE_VERSION="${labels_dct["org.opencontainers.image.version"]:-${labels_dct["org.label-schema.version"]:-${labels_dct["version"]:-${labels_dct["VERSION"]:-${labels_dct["Version"]:-${GITHUB_SHA:-$(date +%s)}}}}}}"
+	INPUT_IMAGE_VERSION="${labels_dct["org.opencontainers.image.version"]:-${labels_dct["org.label-schema.version"]:-${labels_dct["version"]:-${labels_dct["VERSION"]:-${labels_dct["Version"]:-$(date +%s)}}}}}"
 fi
 
 # Set the image authors:
@@ -42,7 +42,7 @@ IMAGE_SOURCE="${IMAGE_SOURCE:-${labels_dct["org.opencontainers.image.source"]:-$
 IMAGE_REVISION="${IMAGE_REVISION:-${labels_dct["org.opencontainers.image.revision"]:-${labels_dct["org.label-schema.vcs-ref"]:-${GITHUB_SHA:-}}}}"
 
 # Set the image URL:
-INPUT_IMAGE_URL="${INPUT_IMAGE_URL:-oras://ghcr.io/${GITHUB_REPOSITORY}/${INPUT_IMAGE_NAME}:${INPUT_IMAGE_VERSION}}}"
+INPUT_IMAGE_URL="${INPUT_IMAGE_URL:-oras://ghcr.io/${GITHUB_REPOSITORY}/${INPUT_IMAGE_NAME}:${INPUT_IMAGE_VERSION}}"
 echo "INPUT_IMAGE_URL=${INPUT_IMAGE_URL}" | tee -a "${GITHUB_ENV}" "${SET_GITHUB_ENV}"
 
 # Set the image vendor:
