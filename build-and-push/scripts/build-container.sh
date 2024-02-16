@@ -28,7 +28,7 @@ df -h "${RUNNER_TEMP}" >&2
 
 # If there are build labels, add them to the definition file:
 if [[ -n "${BUILD_LABELS_PATH:-}" ]] && [[ -f "${BUILD_LABELS_PATH}" ]] && [[ -r "${BUILD_LABELS_PATH}" ]] && test "$(wc -l <"${BUILD_LABELS_PATH}" || echo 0)" -gt 0; then
-	BUILD_DEFFILE="${RUNNER_TEMP}/${IMAGE_NAME}.def"
+	BUILD_DEFFILE="$(mktemp -u -p . --suffix=.def)"
 	cp "${DEFFILE}" "${BUILD_DEFFILE}"
 	printf "\n%%files\n\t%q /.build.labels\n" "$(realpath "${BUILD_LABELS_PATH}")" >>"${BUILD_DEFFILE}"
 fi

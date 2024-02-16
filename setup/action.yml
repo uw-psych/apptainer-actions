@@ -53,8 +53,9 @@ runs:
 
           # Install the deb:
           export DEBIAN_FRONTEND=noninteractive
-          sudo apt-get update -yq  || echo "Couldn't update apt packages. Will attempt installation without update" >&2
-          sudo dpkg --install --force-depends "${DOWNLOAD_PATH}" && sudo apt-get install --fix-broken --yes --quiet
+          sudo apt-get update -qq || echo "Couldn't update apt packages. Will attempt installation without update" >&2
+          sudo dpkg --install --force-depends "${DOWNLOAD_PATH}"
+          sudo apt-get install --fix-broken --yq
 
           # Print the version:
           apptainer --version >&2
