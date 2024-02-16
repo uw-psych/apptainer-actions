@@ -1,5 +1,5 @@
-name: 'Build and push an Apptainer image'
-description: 'This action will build an Apptainer image and push it to a container registry'
+name: "Build and push an Apptainer image"
+description: "This action will build an Apptainer image and push it to a container registry"
 inputs:
   bind:
     description: |
@@ -10,14 +10,14 @@ inputs:
     description: "Path to the file containing build-time variables"
   disable-cache:
     description: "Do not use cache when building the image"
-    default: 'true'
+    default: "true"
   fakeroot:
     description: "Build with the appearance of running as root (default when building from a definition file unprivileged)"
   fix-perms:
     description: "Ensure owner has rwX permissions on all container content for oci/docker sources"
   force:
     description: "Force image build even if it exists"
-    default: 'true'
+    default: "true"
   json:
     description: "interpret build definition as JSON"
   mount:
@@ -32,7 +32,7 @@ inputs:
     description: "Build with the appearance of running as root (default when building from a definition file unprivileged)"
   writable-tmpfs:
     description: "During the %test section, makes the file system accessible as read-write with non  persistent data (with overlay support only)"
- 
+
   # Metadata options
   tags:
     description: "List of tags (will replace the default tags)"
@@ -61,36 +61,36 @@ outputs:
     description: "URL to the built image"
 
 runs:
-  using: 'composite'
+  using: "composite"
 
   steps:
     - id: env
       name: Set environment variables
       env:
-          INPUT_BIND: ${{ inputs.bind }}
-          INPUT_BUILD_ARGS: ${{ inputs.build-args }}
-          INPUT_BUILD_ARG_FILE: ${{ inputs.build-arg-file }}
-          INPUT_DISABLE_CACHE: ${{ inputs.disable-cache }}
-          INPUT_FAKEROOT: ${{ inputs.fakeroot }}
-          INPUT_FIX_PERMS: ${{ inputs.fix-perms }}
-          INPUT_FORCE: ${{ inputs.force }}
-          INPUT_JSON: ${{ inputs.json }}
-          INPUT_MOUNT: ${{ inputs.mount }}
-          INPUT_NOTEST: ${{ inputs.notest }}
-          INPUT_SECTION: ${{ inputs.section }}
-          INPUT_UPDATE: ${{ inputs.update }}
-          INPUT_USERNS: ${{ inputs.userns }}
-          INPUT_WRITABLE_TMPFS: ${{ inputs.writable-tmpfs }}
-          INPUT_TAGS: ${{ inputs.tags }}
-          INPUT_ADD_TAGS: ${{ inputs.add-tags }}
-          INPUT_DEFFILE: ${{ inputs.deffile }}
-          INPUT_DEFFILES_ROOTDIR: ${{ inputs.deffiles-rootdir }}
-          INPUT_IMAGE_NAME: ${{ inputs.image-name }}
-          INPUT_IMAGE_URL: ${{ inputs.image-url }}
-          INPUT_IMAGE_VERSION: ${{ inputs.image-version }}
-          BUILD_LABELS_PATH: ${{ runner.temp }}/.build.labels
-          GH_TOKEN: ${{ github.token }}  
-          XTRACE: 1
+        INPUT_BIND: ${{ inputs.bind }}
+        INPUT_BUILD_ARGS: ${{ inputs.build-args }}
+        INPUT_BUILD_ARG_FILE: ${{ inputs.build-arg-file }}
+        INPUT_DISABLE_CACHE: ${{ inputs.disable-cache }}
+        INPUT_FAKEROOT: ${{ inputs.fakeroot }}
+        INPUT_FIX_PERMS: ${{ inputs.fix-perms }}
+        INPUT_FORCE: ${{ inputs.force }}
+        INPUT_JSON: ${{ inputs.json }}
+        INPUT_MOUNT: ${{ inputs.mount }}
+        INPUT_NOTEST: ${{ inputs.notest }}
+        INPUT_SECTION: ${{ inputs.section }}
+        INPUT_UPDATE: ${{ inputs.update }}
+        INPUT_USERNS: ${{ inputs.userns }}
+        INPUT_WRITABLE_TMPFS: ${{ inputs.writable-tmpfs }}
+        INPUT_TAGS: ${{ inputs.tags }}
+        INPUT_ADD_TAGS: ${{ inputs.add-tags }}
+        INPUT_DEFFILE: ${{ inputs.deffile }}
+        INPUT_DEFFILES_ROOTDIR: ${{ inputs.deffiles-rootdir }}
+        INPUT_IMAGE_NAME: ${{ inputs.image-name }}
+        INPUT_IMAGE_URL: ${{ inputs.image-url }}
+        INPUT_IMAGE_VERSION: ${{ inputs.image-version }}
+        BUILD_LABELS_PATH: ${{ runner.temp }}/.build.labels
+        GH_TOKEN: ${{ github.token }}
+        XTRACE: 1
       shell: bash
       run: |
         set -eEx -o pipefail
@@ -98,7 +98,7 @@ runs:
           [[ -n "${!var}" ]] && echo "${var}=${!var}" >> "${GITHUB_ENV}"
         done
         printenv
-    
+
     - id: check-prereqs
       name: Check prerequisites
       shell: bash
@@ -107,28 +107,31 @@ runs:
         command -v gh >/dev/null 2>&1 || { echo "gh is required but not found" >&2; exit 1; }
         command -v apptainer >/dev/null 2>&1 || { echo "apptainer is required but not found" >&2; exit 1; }
         command -v oras >/dev/null 2>&1 || { echo "oras is required but not found" >&2; exit 1; }
-    
+
     - name: Find definition file
       shell: bash
-      run: ${GITHUB_ACTION_PATH}/scripts/find-deffile.sh
-    
+      run: |
+        source "${GITHUB_ACTION_PATH}/scripts/find-deffile.sh"
+
     - name: Create image labels
       shell: bash
-      run: ${GITHUB_ACTION_PATH}/scripts/create-labels.sh
-    
+      run: |
+        source "${GITHUB_ACTION_PATH}/scripts/create-labels.sh"
+
     - name: Build container
       shell: bash
-      run: ${GITHUB_ACTION_PATH}/scripts/build-container.sh
-    
+      run: |
+        source "${GITHUB_ACTION_PATH}/scripts/build-container.sh"
+
     - name: Push container
       shell: bash
-      run: ${GITHUB_ACTION_PATH}/scripts/push-container.sh
-      
-    - name: "Tag container"
-      shell: bash  
-      run: "${GITHUB_ACTION_PATH}/scripts/tag-container.sh"
-      
+      run: source "${GITHUB_ACTION_PATH}/scripts/push-container.sh"
+
+    - name: Tag container
+      shell: bash
+      run: source "${GITHUB_ACTION_PATH}/scripts/tag-container.sh"
+
     - name: Update OCI manifest
       shell: bash
-      run: "${GITHUB_ACTION_PATH}/scripts/update-oci-manifest.sh"
-      
+      run: |
+        source "${GITHUB_ACTION_PATH}/scripts/update-oci-manifest.sh"
