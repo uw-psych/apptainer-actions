@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2154,SC2312
-[[ "${XTRACE:-0}" != 0 ]] && set -x
+[[ "${XTRACE:-0}" != 0 ]] && set -x && printenv
 set -eEuo pipefail
 
 # Set up arguments array for apptainer:
@@ -26,8 +26,13 @@ IMAGE_PATH="${RUNNER_TEMP}/${IMAGE_NAME}.sif"
 # Show the free space on the image output path:
 df -h "${RUNNER_TEMP}" >&2
 
+pwd
+ls -la
+
 # Go to the directory of the definition file:
 pushd "$(dirname "${DEFFILE}")"
+pwd
+ls -la
 
 # If there are build labels, add them to the definition file:
 if [[ -n "${BUILD_LABELS_PATH:-}" ]] && [[ -f "${BUILD_LABELS_PATH}" ]] && [[ -r "${BUILD_LABELS_PATH}" ]] && test "$(wc -l <"${BUILD_LABELS_PATH}" || echo 0)" -gt 0; then
