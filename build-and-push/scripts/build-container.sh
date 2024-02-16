@@ -26,15 +26,15 @@ IMAGE_PATH="${RUNNER_TEMP}/${IMAGE_NAME}.sif"
 # Show the free space on the image output path:
 df -h "${RUNNER_TEMP}" >&2
 
+# Go to the directory of the definition file:
+pushd "$(dirname "${DEFFILE}")"
+
 # If there are build labels, add them to the definition file:
 if [[ -n "${BUILD_LABELS_PATH:-}" ]] && [[ -f "${BUILD_LABELS_PATH}" ]] && [[ -r "${BUILD_LABELS_PATH}" ]] && test "$(wc -l <"${BUILD_LABELS_PATH}" || echo 0)" -gt 0; then
-	BUILD_DEFFILE="$(mktemp -u -p . --suffix=.def)"
+	BUILD_DEFFILE="${RUNNER_TEMP}/$(basename "${DEFFILE}")"
 	cp "${DEFFILE}" "${BUILD_DEFFILE}"
 	printf "\n%%files\n\t%q /.build.labels\n" "$(realpath "${BUILD_LABELS_PATH}")" >>"${BUILD_DEFFILE}"
 fi
-
-# Go to the directory of the definition file:
-pushd "$(dirname "$(realpath "${BUILD_DEFFILE:-${DEFFILE}}")")"
 
 # Build the container:
 apptainer build "${apptainer_args[@]}" "${IMAGE_PATH}" "${BUILD_DEFFILE:-${DEFFILE}}"
