@@ -88,17 +88,17 @@ runs:
         INPUT_IMAGE_NAME: ${{ inputs.image-name }}
         INPUT_IMAGE_URL: ${{ inputs.image-url }}
         INPUT_IMAGE_VERSION: ${{ inputs.image-version }}
-        BUILD_LABELS_PATH: ${{ runner.temp }}/.build.labels
+        INPUT_BUILD_LABELS_PATH: ${{ runner.temp }}/.build.labels
         GH_TOKEN: ${{ github.token }}
         XTRACE: 1
       shell: bash
       run: |
         set -eEx -o pipefail
-        for var in ${!INPUT_@} XTRACE BUILD_LABELS_PATH GH_TOKEN; do
-          [[ -n "${!var}" ]] && echo "${var}=${!var}" >> "${GITHUB_ENV}"
+        SET_GITHUB_ENV="${RUNNER_TEMP}/set-github-env.sh"
+        for var in ${!INPUT_@} XTRACE GH_TOKEN SET_GITHUB_ENV; do
+          [[ -n "${!var}" ]] && echo "${var}=${!var}" | tee -a "${GITHUB_ENV}" "${SET_GITHUB_ENV}"
         done
-        printenv
-
+      
     - id: check-prereqs
       name: Check prerequisites
       shell: bash
