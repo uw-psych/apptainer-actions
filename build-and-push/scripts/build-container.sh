@@ -3,6 +3,9 @@
 [[ "${XTRACE:-0}" != 0 ]] && set -x
 set -eEuo pipefail
 
+# cd to the directory of the definition file:
+pushd "$(dirname "$(realpath "${DEFFILE}")")"
+
 # Set up arguments array for apptainer:
 declare -a apptainer_args=()
 
@@ -46,3 +49,6 @@ apptainer inspect "${IMAGE_PATH}" >&2
 
 # Write the image path to the environment:
 echo "IMAGE_PATH=${IMAGE_PATH}" >>"${GITHUB_ENV}"
+
+# Return to the original directory:
+popd
