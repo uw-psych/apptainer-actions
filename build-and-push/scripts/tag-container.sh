@@ -50,7 +50,7 @@ fi
 # Tag the image with additional tags if any:
 if (("${#image_tags[@]}" > 1)); then
 	echo "Tagging the image with additional tags: ${image_tags[*]:1}" >&2
-	oras tag -u "${GITHUB_ACTOR}" -p "${GITHUB_TOKEN}" "${IMAGE_URL#oras://}" "${image_tags[@]}"
+	oras tag -u "${GITHUB_ACTOR}" -p "${GH_TOKEN}" "${IMAGE_URL#oras://}" "${image_tags[@]}"
 fi
 
 echo "image-tags=${image_tags[*]}" >>"${GITHUB_OUTPUT}"

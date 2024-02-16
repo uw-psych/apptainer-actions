@@ -4,7 +4,7 @@
 set -eEuo pipefail
 
 # Log in:
-apptainer remote login -u "${GITHUB_ACTOR}" -p "${GITHUB_TOKEN}" oras://ghcr.io
+apptainer remote login -u "${GITHUB_ACTOR}" -p "${GH_TOKEN}" oras://ghcr.io
 
 # Push the image:
 echo "Pushing image to \"${IMAGE_URL}\"" >&2

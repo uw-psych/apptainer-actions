@@ -4,7 +4,7 @@
 set -eEuo pipefail
 
 # Fetch the manifest from the newly pushed image:
-oras manifest fetch -u "${GITHUB_ACTOR}" -p "${GITHUB_TOKEN}" "${IMAGE_URL#oras://}" >"${RUNNER_TEMP}/manifest.json"
+oras manifest fetch -u "${GITHUB_ACTOR}" -p "${GH_TOKEN}" "${IMAGE_URL#oras://}" >"${RUNNER_TEMP}/manifest.json"
 
 # Get the annotations from the image:
 labels_json="$(apptainer inspect --json --labels "${IMAGE_PATH}" | jq -r '.data.attributes.labels' || true)"
@@ -26,5 +26,5 @@ if [[ -n "${labels_json:-}" ]]; then
 	jq --argjson labels "${labels_json}" '.annotations += $labels' "${RUNNER_TEMP}/manifest.json" >"${RUNNER_TEMP}/manifest-updated.json"
 
 	# Push the updated manifest:
-	oras manifest push -u "${GITHUB_ACTOR}" -p "${GITHUB_TOKEN}" --media-type 'application/vnd.oci.image.manifest.v1+json' "${IMAGE_URL#oras://}" "${RUNNER_TEMP}/manifest-updated.json"
+	oras manifest push -u "${GITHUB_ACTOR}" -p "${GH_TOKEN}" --media-type 'application/vnd.oci.image.manifest.v1+json' "${IMAGE_URL#oras://}" "${RUNNER_TEMP}/manifest-updated.json"
 fi
