@@ -43,7 +43,8 @@ IMAGE_SOURCE="${IMAGE_SOURCE:-${labels_dct["org.opencontainers.image.source"]:-$
 IMAGE_REVISION="${IMAGE_REVISION:-${labels_dct["org.opencontainers.image.revision"]:-${labels_dct["org.label-schema.vcs-ref"]:-${GITHUB_SHA:-}}}}"
 
 # Set the image URL:
-IMAGE_URL="${labels_dct["org.opencontainers.image.url"]:-${labels_dct["org.label-schema.url"]:-${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/-/actions/runs/${GITHUB_RUN_ID}}}"
+IMAGE_URL="${IMAGE_URL:-${INPUT_IMAGE_URL:-oras://ghcr.io/${GITHUB_REPOSITORY}/${IMAGE_NAME}:${IMAGE_VERSION}}}"
+echo "IMAGE_URL=${IMAGE_URL}" >>"${GITHUB_ENV}"
 
 # Set the image vendor:
 IMAGE_VENDOR="${IMAGE_VENDOR:-${labels_dct["org.opencontainers.image.vendor"]:-${labels_dct["org.label-schema.vendor"]:-${GITHUB_REPOSITORY_OWNER:-}}}}"
