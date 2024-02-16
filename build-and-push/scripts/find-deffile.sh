@@ -17,6 +17,7 @@ fi
 
 # Write the definition file to the environment if found:
 if [[ -n "${DEFFILE:-}" ]]; then
+	DEFFILE="$(realpath "${DEFFILE}")"
 	echo "DEFFILE=${DEFFILE}" >>"${GITHUB_ENV}"
 else
 	echo "No definition file found" >&2

@@ -26,8 +26,6 @@ IMAGE_PATH="${RUNNER_TEMP}/${IMAGE_NAME}.sif"
 # Show the free space on the image output path:
 df -h "${RUNNER_TEMP}" >&2
 
-DEFFILE="$(realpath "${DEFFILE}")"
-
 # Go to the directory of the definition file:
 pushd "$(dirname "${DEFFILE}")"
 

@@ -9,7 +9,7 @@ declare -A labels_dct
 while read -r line; do
 	read -r k v <<<"$line"
 	labels_dct["${k}"]="${v:-}"
-done < <(awk '/^\s*%labels/{flag=1;next}/^\s*%\S+/{flag=0}flag' Singularity | sed -E '/^\s*$/d; s/^\s*//g; s/\s*$//g; s/[^\\][#].*$//g; s/^(\S+)\s{2,}/\1 /g')
+done < <(awk '/^\s*%labels/{flag=1;next}/^\s*%\S+/{flag=0}flag' "${DEFFILE}" | sed -E '/^\s*$/d; s/^\s*//g; s/\s*$//g; s/[^\\][#].*$//g; s/^(\S+)\s{2,}/\1 /g')
 
 # Get image version from the definition file if possible:
 
