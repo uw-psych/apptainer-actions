@@ -3,9 +3,6 @@
 [[ "${XTRACE:-0}" != 0 ]] && set -x
 set -eEuo pipefail
 
-# cd to the directory of the definition file:
-pushd "$(dirname "$(realpath "${DEFFILE}")")"
-
 # Set up arguments array for apptainer:
 declare -a apptainer_args=()
 
@@ -35,6 +32,9 @@ if [[ -n "${BUILD_LABELS_PATH:-}" ]] && [[ -f "${BUILD_LABELS_PATH}" ]] && [[ -r
 	cp "${DEFFILE}" "${BUILD_DEFFILE}"
 	printf "\n%%files\n\t%q /.build.labels\n" "$(realpath "${BUILD_LABELS_PATH}")" >>"${BUILD_DEFFILE}"
 fi
+
+# Go to the directory of the definition file:
+pushd "$(dirname "$(realpath "${BUILD_DEFFILE:-${DEFFILE}}")")"
 
 # Build the container:
 apptainer build "${apptainer_args[@]}" "${IMAGE_PATH}" "${BUILD_DEFFILE:-${DEFFILE}}"
