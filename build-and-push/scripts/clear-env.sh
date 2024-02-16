@@ -4,7 +4,7 @@
 set -eE
 
 # Clear the environment:
-grep -o '^[^=]*=' "${SET_GITHUB_ENV}" > "${RUNNER_TEMP}/new-env.tmp"
+grep -o '^[^=]*=' "${SET_GITHUB_ENV}" | tee "${RUNNER_TEMP}/new-env.tmp"
 cat "${RUNNER_TEMP}/new-env.tmp" >> "${GITHUB_ENV}"
 rm -f "${RUNNER_TEMP}/new-env.tmp" "${SET_GITHUB_ENV}"
 

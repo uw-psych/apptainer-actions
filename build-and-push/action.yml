@@ -136,7 +136,14 @@ runs:
       run: |
         source "${GITHUB_ACTION_PATH}/scripts/update-oci-manifest.sh"
     
+    - name: Delete image
+      shell: bash
+      run: |
+        rm -f "${INPUT_IMAGE_PATH}" "${INPUT_BUILD_LABELS_PATH}"
     - name: Clear GITHUB_ENV
       shell: bash
       run: |
         source "${GITHUB_ACTION_PATH}/scripts/clear-env.sh"
+  
+
+    

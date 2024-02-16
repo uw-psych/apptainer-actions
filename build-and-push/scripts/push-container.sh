@@ -12,5 +12,3 @@ apptainer push -U "${INPUT_IMAGE_PATH}" "${INPUT_IMAGE_URL}"
 echo "image-url=${INPUT_IMAGE_URL}" >>"${GITHUB_OUTPUT}"
 echo "::notice::Pushed image to \"${INPUT_IMAGE_URL}\""
 
-rm -f "${INPUT_IMAGE_PATH}" # Remove the image file to save space
-
