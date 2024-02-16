@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2154,SC2312
-[[ "${XTRACE:-0}" != 0 ]] && set -x && printenv
+[[ "${XTRACE:-0}" != 0 ]]
 set -eEuo pipefail
 
 # Set up arguments array for apptainer:
