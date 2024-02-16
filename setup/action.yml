@@ -23,7 +23,6 @@ runs:
       env:
         APPTAINER_VERSION: ${{ inputs.apptainer-version }}
         DOWNLOAD_DIR: ${{ inputs.download-dir }}
-        GH_TOKEN: ${{ github.token }}
       shell: bash
       run: |
           set -eux -o pipefail

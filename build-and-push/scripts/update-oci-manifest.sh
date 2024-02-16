@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2154,SC2312
 [[ "${XTRACE:-0}" != 0 ]] && set -x
 set -eEuo pipefail
 

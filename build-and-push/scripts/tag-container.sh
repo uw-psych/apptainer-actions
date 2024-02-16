@@ -1,12 +1,22 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2154,SC2312
 [[ "${XTRACE:-0}" != 0 ]] && set -x
 set -eEuo pipefail
 
 # Get the image tags:
 declare -a image_tags=()
-image_tags+=(${INPUT_TAGS:-})      # Add the tags from the input
-image_tags+=("${IMAGE_VERSION:-}") # Add the version as a tag
-image_tags+=(${INPUT_ADD_TAGS:-})  # Add the additional tags to the list of tags
+
+if [[ -n "${INPUT_TAGS:-}" ]]; then
+	IFS=" " read -r -a REPLY <<<"${INPUT_TAGS:-}"
+	image_tags+=("${REPLY[@]}") # Add the tags from the input
+fi
+
+[[ -n "${IMAGE_VERSION:-}" ]] && image_tags+=("${IMAGE_VERSION:-}") # Add the version as a tag
+
+if [[ -n "${INPUT_ADD_TAGS:-}" ]]; then
+	IFS=" " read -r -a REPLY <<<"${INPUT_ADD_TAGS:-}"
+	image_tags+=("${REPLY[@]}") # Add the tags from the input
+fi
 
 # If we have a semantic version, and if it is the newest version that is not a pre-release, add the "latest" tag:
 if [[ -n "${IMAGE_VERSION:-}" ]] && [[ "${IMAGE_VERSION:-}" =~ ^v?(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
@@ -30,7 +40,8 @@ if [[ -n "${IMAGE_VERSION:-}" ]] && [[ "${IMAGE_VERSION:-}" =~ ^v?(0|[1-9][0-9]*
 fi
 
 # Remove duplicate tags:
-image_tags=($(echo "${image_tags[@]}" | tr [:space:] '\n' | awk '!a[$0]++'))
+# shellcheck disable=SC2207
+image_tags=($(echo "${image_tags[@]}" | tr '[:space:]' '\n' | awk '!a[$0]++'))
 if ! [[ "${IMAGE_URL:-}" =~ ^oras://ghcr\.io/ ]]; then
 	echo "::error::Invalid image URL (should be oras://ghcr.io/...): \"${IMAGE_URL}\""
 	exit 1
@@ -39,7 +50,7 @@ fi
 # Tag the image with additional tags if any:
 if (("${#image_tags[@]}" > 1)); then
 	echo "Tagging the image with additional tags: ${image_tags[*]:1}" >&2
-	oras tag -u "${GITHUB_ACTOR}" -p "${GITHUB_TOKEN}" "${IMAGE_URL#oras://}" ${image_tags[@]}
+	oras tag -u "${GITHUB_ACTOR}" -p "${GITHUB_TOKEN}" "${IMAGE_URL#oras://}" "${image_tags[@]}"
 fi
 
 echo "image-tags=${image_tags[*]}" >>"${GITHUB_OUTPUT}"
