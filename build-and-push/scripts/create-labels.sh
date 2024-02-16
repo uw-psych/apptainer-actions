@@ -60,7 +60,7 @@ IMAGE_TITLE="${IMAGE_TITLE:-${labels_dct["org.opencontainers.image.title"]:-${la
 IMAGE_DESCRIPTION="${IMAGE_DESCRIPTION:-${labels_dct["org.opencontainers.image.description"]:-${labels_dct["org.label-schema.description"]:-${labels_dct["description"]:-${labels_dct["DESCRIPTION"]:-${labels_dct["Description"]:-}}}}}}"
 if [[ -n "${IMAGE_DESCRIPTION:-}" ]]; then
 	# Get the description from the definition file's help section if possible:
-	HELP_SECTION="$(awk '/^\s*%help/{flag=1;next}/^\s*%\S+/{flag=0}flag' Singularity | tr '\n' ' ' | sed -E 's/^\s*//g; s/\s*$//g; s/\s+/ /g' || true)"
+	HELP_SECTION="$(awk '/^\s*%help/{flag=1;next}/^\s*%\S+/{flag=0}flag' "${DEFFILE}" | tr '\n' ' ' | sed -E 's/^\s*//g; s/\s*$//g; s/\s+/ /g' || true)"
 	if [[ -n "${HELP_SECTION}" ]]; then
 		IMAGE_DESCRIPTION="${IMAGE_DESCRIPTION:-"${HELP_SECTION}"}"
 	fi
