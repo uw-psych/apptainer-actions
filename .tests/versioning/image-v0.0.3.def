@@ -1,0 +1,19 @@
+Bootstrap: docker
+From: alpine:3
+
+%labels
+	org.opencontainers.image.version v0.0.3
+
+%setup
+	printenv | sed 's/^/%setup.env: /'
+
+%post
+	printenv | sed 's/^/%post.env: /'
+
+%runscript
+	printenv | sed 's/^/%runscript.env: /'
+	cat "/.singularity.d/labels.json" | sed 's/^/%runscript.labels: /'
+
+%test
+	printenv | sed 's/^/%test.env: /'
+

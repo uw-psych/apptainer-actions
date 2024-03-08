@@ -1,0 +1,111 @@
+name: Apptainer Build
+on:
+  push:
+    branches:
+      - test
+
+jobs:
+  build-and-push-image:
+    runs-on: ubuntu-latest
+    name: Build Apptainer image
+    defaults:
+      run:
+        shell: bash
+    permissions:
+        contents: read
+        packages: write
+    env:
+      IMAGE_NAME: versioning
+      REPO_NAME: ${{ github.event.repository.name }}
+    steps:
+      - name: Install Apptainer
+        uses: maouw/apptainer-actions/setup@main
+      - name: Clear disk space
+        uses: maouw/apptainer-actions/make-disk-space@main
+      - name: Check out code for the container build
+        uses: actions/checkout@v4
+      - name: Get version
+        run: |
+          if [[ "${GITHUB_REF_TYPE:-}" == "tag" ]]; then
+            case "${GITHUB_REF_NAME:-}" in
+              v?*) IMAGE_VERSION="${GITHUB_REF_NAME#v}";;
+              *@?*) IMAGE_VERSION="${GITHUB_REF_NAME#*@}";;
+              *) echo "Invalid tag: \"${GITHUB_REF_NAME:-}\"" >&2; exit 1;;
+            esac
+            echo "IMAGE_VERSION=${IMAGE_VERSION}" >> "${GITHUB_ENV}"
+              fi
+      - id: init-check-dir
+        run: |
+          mkdir -p .tests/versioning/manifests
+          echo "MANIFEST_DIR=.tests/versioning/manifests" >> "${GITHUB_ENV}"
+      - id: build-container-v0.0.1
+        uses: maouw/apptainer-actions/build-and-push@main
+        with:
+          deffile: '.tests/versioning/image-v0.0.1.def'
+          name: ${{ env.IMAGE_NAME }}
+      - id: check-container-v0.0.1
+        env:
+          IMAGE_URL: ${{ steps.build-container-v0.0.1.outputs.image_url }}
+        run: |
+          set -eE -o pipefail
+
+          # Check the image URL:
+          echo "${IMAGE_URL}" | tee /dev/stderr | grep -qE "${IMAGE_NAME}:v0.0.1$"
+
+          # Check the image tags in the container registry includes this version:
+          gh api "/users/${GITHUB_REPOSITORY_OWNER}/packages/container/${REPO_NAME}%2F${IMAGE_NAME}/versions' --jq '.[].metadata.container | select(.tags | length > 0) | .tags[]' | grep -qE "${IMAGE_VERSION#v}"
+
+          MANIFEST_PATH="${MANIFEST_DIR}/manifest-${IMAGE_NAME}-${IMAGE_VERSION}.json"
+          
+          # Fetch the image manifest:
+          oras manifest fetch --pretty -u maouw -p $(gh auth token) ghcr.io/${GITHUB_REPOSITORY}/${IMAGE_NAME}:${IMAGE_VERSION} > "${MANIFEST_PATH}"
+
+          # Check the image manifest includes the correct version:
+          jq --exit-status --arg VERSION "${IMAGE_VERSION}" '.annotations."org.opencontainers.image.version" == $VERSION' "${MANIFEST_PATH}"
+
+          # Check the image manifest includes the correct name:
+          jq --exit-status --arg NAME "${IMAGE_NAME}" '.annotations."org.opencontainers.image.title" == $NAME' "${MANIFEST_PATH}"
+
+          # Check the image manifest includes the correct repository:
+          jq --exit-status --arg REPO "${GITHUB_REPOSITORY}" '.annotations."org.opencontainers.image.source" == $REPO' "${MANIFEST_PATH}"
+
+          # Check the image manifest includes the correct URL:
+          jq --exit-status --arg URL "${IMAGE_URL}" '.annotations."org.opencontainers.image.url" == $REPO' "${MANIFEST_PATH}"
+
+          # Check the image manifest includes the correct revision:
+          jq --exit-status --arg REVISION "${GITHUB_SHA}" '.annotations."org.opencontainers.image.revision" == $REVISION' "${MANIFEST_PATH}"
+
+          # Check the image manifest includes the correct vendor:
+          jq --exit-status --arg VENDOR "${GITHUB_REPOSITORY_OWNER}" '.annotations."org.opencontainers.image.vendor" == $VENDOR' "${MANIFEST_PATH}"
+  
+
+      - name: Build Container v0.0.2
+        uses: maouw/apptainer-actions/build-and-push@main
+        with:
+          deffile: '.tests/versioning/image-v0.0.2.def'
+          name: ${{ env.IMAGE_NAME }}
+      - id: check-container-v0.0.2
+        env:
+          IMAGE_URL: ${{ steps.build-container-v0.0.1.outputs.image_url }}
+        run: |
+          set -eE -o pipefail
+          echo "${IMAGE_URL}" | tee /dev/stderr | grep -qE "${IMAGE_NAME}:v0.0.2$"
+          gh api "/users/${GITHUB_REPOSITORY_OWNER}/packages/container/${REPO_NAME}%2F${IMAGE_NAME}/versions' --jq '.[].metadata.container | select(.tags | length > 0) | .tags[]' | grep -qE "${IMAGE_VERSION#v}"
+          oras manifest fetch --pretty -u maouw -p $(gh auth token) ghcr.io/${GITHUB_REPOSITORY}/${IMAGE_NAME}:${IMAGE_VERSION}
+
+      - name: Build Container v0.0.3-pre
+        uses: maouw/apptainer-actions/build-and-push@main
+        with:
+          deffile: '.tests/versioning/image-v0.0.3-pre.def'
+      - name: Build Container v0.0.3
+        uses: maouw/apptainer-actions/build-and-push@main
+        with:
+          deffile: '.tests/versioning/image-v0.0.3.def'
+      - name: Build Container v0.0.4
+        uses: maouw/apptainer-actions/build-and-push@main
+        with:
+          deffile: '.tests/versioning/image-v0.0.4.def'
+  
+  
+
+
