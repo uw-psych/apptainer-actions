@@ -47,7 +47,6 @@ runs:
         df -hlT / /mnt
     - name: Remove tools
       shell: bash
-      if: ${{ inputs.rm-android == 'true' || inputs.rm-dotnet == 'true' || inputs.rm-haskell == 'true' || inputs.rm-hosted-tool-cache == 'true' }}
       run: |
           set -eEux -o pipefail
           [[ "${{ inputs.rm-android }}" == "true" ]] && sudo du -s -h /usr/local/lib/android && sudo rm -rf "$_" && echo "::notice::Removed Android tools"
@@ -62,15 +61,14 @@ runs:
       if: ${{ inputs.rm-apt-packages == 'true' }}
       run: |
         set -eux -o pipefail
-        if [[ "${{ inputs.rm-apt-packages }}" == "true" ]]; then
-          declare -a packages=()
-          comm -23 <(echo "${{inputs.apt-packages-remove-default}} ${{inputs.apt-packages-remove-include}}" | tr ' ' '\n' | sort | uniq) <(echo "${{inputs.apt-packages-remove-exclude}}" | tr ' ' '\n' | sort | uniq) | while read -r package; do
-            packages+=("$package")
-          done
-          if [[ "${#packages[@]}" -gt 0 ]]; then
-            sudo apt-get purge -yq "${packages[@]}" && echo "::notice::Removed apt packages"
-            sudo apt-get autoremove -y && echo "::notice::Removed unused apt packages"
-          fi
+        declare -a packages=()
+        comm -23 <(echo "${{inputs.apt-packages-remove-default}} ${{inputs.apt-packages-remove-include}}" | tr ' ' '\n' | sort | uniq) <(echo "${{inputs.apt-packages-remove-exclude}}" | tr ' ' '\n' | sort | uniq) | while read -r package; do
+          packages+=("$package")
+        done
+        if [[ "${#packages[@]}" -gt 0 ]]; then
+          sudo apt-get purge -yq "${packages[@]}" && echo "::notice::Removed apt packages"
+          sudo apt-get autoremove -y && echo "::notice::Removed unused apt packages"
+        fi   
     - name: Clear apt cache
       if: ${{ inputs.rm-apt-cache == 'true' || inputs.rm-apt-packages == 'true' }}
       shell: bash
