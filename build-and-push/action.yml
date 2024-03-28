@@ -63,6 +63,9 @@ inputs:
   apptainer-tmpdir:
     description: "Temporary directory for Apptainer"
     required: false
+  xtrace:
+    description: "Enable set -x in the script"
+    default: 'false'
 
 outputs:
   image-url:
@@ -99,9 +102,18 @@ runs:
         INPUT_IMAGE_PATH: ${{ inputs.image-path }}
         INPUT_IMAGE_DIR: ${{ inputs.image-dir }}
         INPUT_APPTAINER_TMPDIR: ${{ inputs.apptainer-tmpdir }}
+        INPUT_XTRACE: ${{ inputs.xtrace }}
         GH_TOKEN: ${{ github.token }}
       run: |
         set -eu -o pipefail
+        if [[ "${INPUT_XTRACE:-false}" == "true" ]]; then
+          set -x
+          XTRACE=x
+        else
+          XTRACE=
+        fi
+        echo "XTRACE=${XTRACE}" >> "${GITHUB_ENV}"
+
         echo INPUT_BIND="${INPUT_BIND:-}" >> "${GITHUB_ENV}"
         echo INPUT_BUILD_ARGS="${INPUT_BUILD_ARGS:-}" >> "${GITHUB_ENV}"
         echo INPUT_BUILD_ARG_FILE="${INPUT_BUILD_ARG_FILE:-}" >> "${GITHUB_ENV}"
@@ -133,7 +145,7 @@ runs:
       name: Check prerequisites
       shell: bash
       run: |
-        set -eux -o pipefail
+        set -eu${XTRACE} -o pipefail
         command -v jq >/dev/null 2>&1 || { echo "jq is required but not found" >&2; exit 1; }
         command -v gh >/dev/null 2>&1 || { echo "gh is required but not found" >&2; exit 1; }
         command -v apptainer >/dev/null 2>&1 || { echo "apptainer is required but not found" >&2; exit 1; }
@@ -149,7 +161,7 @@ runs:
       name: Find definition file
       shell: bash
       run: |
-        set -eu -o pipefail
+        set -eu${XTRACE} -o pipefail
         if [[ -z "${DEFFILE:=${INPUT_DEFFILE:-}}" ]]; then
           FOUND_DEFFILES="$(find "${INPUT_DEFFILES_ROOTDIR:-.}" -type f \( -name 'Apptainer' -or -name 'Singularity' -or -name '*.def' \) -printf '%p\t%f\n' | awk -F$'\t' -v OFS=$'\t' '{print $2 == "Apptainer" ? 1: ($2 == "Singularity" ? 2 : 3), $1}' | awk -F'/' -v OFS=$'\t' '{print NF -1, $0}' | sort --key=1n,2n | cut -f3 | head -n 1 || true)"
           [[ -z "${FOUND_DEFFILES:-}" ]] && { echo "No definition file found" >&2; exit 1; }
@@ -179,7 +191,7 @@ runs:
       name: Create image labels
       shell: bash
       run: |
-        set -eu -o pipefail
+        set -eu${XTRACE} -o pipefail
 
         # Get image version from the definition file if possible:
         [[ -n "${IMAGE_VERSION:-}" ]] && IMAGE_VERSION="$(awk '/^\s*%labels/{flag=1;next}/^\s*%\S+/{flag=0}flag' "${DEFFILE}"  | grep -m1 -oiP '^\s*version\s+\K.+' | sed 's/^\s*//g; s/\s*$//g' || true)"
@@ -230,7 +242,7 @@ runs:
       name: Build container
       shell: bash
       run: |
-        set -eu -o pipefail
+        set -eu${XTRACE} -o pipefail
         declare -a apptainer_args=()
 
         for arg in bind build-args build-arg-file disable-cache fakeroot fix-perms force json mount notest section update userns writable-tmpfs; do
@@ -255,7 +267,7 @@ runs:
         echo "Free space in the image directory \"${IMAGE_DIR}\":"
         df -hlT "${IMAGE_DIR}"
 
-        if [ -n "${INPUT_APPTAINER_TMPDIR:-}" ]; then
+        if [[ -n "${INPUT_APPTAINER_TMPDIR:-}" ]]; then
           export APPTAINER_TMPDIR="${INPUT_APPTAINER_TMPDIR}" mkdir -p "${APPTAINER_TMPDIR}"
           echo "Free space in APPTAINER_TMPDIR \"${APPTAINER_TMPDIR}\":"
           df -hlT "${APPTAINER_TMPDIR}"
@@ -264,7 +276,7 @@ runs:
 
         apptainer build "${apptainer_args[@]}" "${IMAGE_PATH}" "${BUILD_DEFFILE:-${DEFFILE}}"
 
-        [ -n "${APPTAINER_TMPDIR:-}" ] && rm -rf "${APPTAINER_TMPDIR}"
+        [[ -n "${APPTAINER_TMPDIR:-}" ]] && [[ -d "${APPTAINER_TMPDIR}" ]] && rm -rf "${APPTAINER_TMPDIR}"
 
         echo -n "Container size:" >&2
         du -h "${IMAGE_PATH}" | cut -f1 >&2
@@ -278,7 +290,7 @@ runs:
       name: Push container
       shell: bash
       run: |
-        set -eu -o pipefail
+        set -eu${XTRACE} -o pipefail
 
         # Get the image tags:
         declare -a image_tags=()
