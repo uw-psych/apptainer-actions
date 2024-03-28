@@ -268,7 +268,8 @@ runs:
         df -hlT "${IMAGE_DIR}"
 
         if [[ -n "${INPUT_APPTAINER_TMPDIR:-}" ]]; then
-          export APPTAINER_TMPDIR="${INPUT_APPTAINER_TMPDIR}" mkdir -p "${APPTAINER_TMPDIR}"
+          export APPTAINER_TMPDIR="${INPUT_APPTAINER_TMPDIR}"
+          mkdir -p "${APPTAINER_TMPDIR}"
           echo "Free space in APPTAINER_TMPDIR \"${APPTAINER_TMPDIR}\":"
           df -hlT "${APPTAINER_TMPDIR}"
           echo "APPTAINER_TMPDIR=${APPTAINER_TMPDIR}" >> "${GITHUB_ENV}"
