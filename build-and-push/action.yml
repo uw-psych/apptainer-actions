@@ -66,28 +66,28 @@ runs:
       name: Set environment variables
       shell: bash
       env:
-          INPUT_BIND: ${{ inputs.bind }}
-          INPUT_BUILD_ARGS: ${{ inputs.build-args }}
-          INPUT_BUILD_ARG_FILE: ${{ inputs.build-arg-file }}
-          INPUT_DISABLE_CACHE: ${{ inputs.disable-cache }}
-          INPUT_FAKEROOT: ${{ inputs.fakeroot }}
-          INPUT_FIX_PERMS: ${{ inputs.fix-perms }}
-          INPUT_FORCE: ${{ inputs.force }}
-          INPUT_JSON: ${{ inputs.json }}
-          INPUT_MOUNT: ${{ inputs.mount }}
-          INPUT_NOTEST: ${{ inputs.notest }}
-          INPUT_SECTION: ${{ inputs.section }}
-          INPUT_UPDATE: ${{ inputs.update }}
-          INPUT_USERNS: ${{ inputs.userns }}
-          INPUT_WRITABLE_TMPFS: ${{ inputs.writable-tmpfs }}
-          INPUT_TAGS: ${{ inputs.tags }}
-          INPUT_ADD_TAGS: ${{ inputs.add-tags }}
-          INPUT_DEFFILE: ${{ inputs.deffile }}
-          INPUT_DEFFILES_ROOTDIR: ${{ inputs.deffiles-rootdir }}
-          INPUT_NAME: ${{ inputs.name }}
-          INPUT_IMAGE_URL: ${{ inputs.image-url }}
-          INPUT_IMAGE_VERSION: ${{ inputs.image-version }}
-          GH_TOKEN: ${{ github.token }}
+        INPUT_BIND: ${{ inputs.bind }}
+        INPUT_BUILD_ARGS: ${{ inputs.build-args }}
+        INPUT_BUILD_ARG_FILE: ${{ inputs.build-arg-file }}
+        INPUT_DISABLE_CACHE: ${{ inputs.disable-cache }}
+        INPUT_FAKEROOT: ${{ inputs.fakeroot }}
+        INPUT_FIX_PERMS: ${{ inputs.fix-perms }}
+        INPUT_FORCE: ${{ inputs.force }}
+        INPUT_JSON: ${{ inputs.json }}
+        INPUT_MOUNT: ${{ inputs.mount }}
+        INPUT_NOTEST: ${{ inputs.notest }}
+        INPUT_SECTION: ${{ inputs.section }}
+        INPUT_UPDATE: ${{ inputs.update }}
+        INPUT_USERNS: ${{ inputs.userns }}
+        INPUT_WRITABLE_TMPFS: ${{ inputs.writable-tmpfs }}
+        INPUT_TAGS: ${{ inputs.tags }}
+        INPUT_ADD_TAGS: ${{ inputs.add-tags }}
+        INPUT_DEFFILE: ${{ inputs.deffile }}
+        INPUT_DEFFILES_ROOTDIR: ${{ inputs.deffiles-rootdir }}
+        INPUT_NAME: ${{ inputs.name }}
+        INPUT_IMAGE_URL: ${{ inputs.image-url }}
+        INPUT_IMAGE_VERSION: ${{ inputs.image-version }}
+        GH_TOKEN: ${{ github.token }}
       run: |
         set -eux -o pipefail
         echo INPUT_BIND="${INPUT_BIND:-}" >> "${GITHUB_ENV}"
@@ -233,6 +233,12 @@ runs:
           cp "${DEFFILE}" "${BUILD_DEFFILE}"
             printf "\n%%files\n\t%q /.build.labels\n" "$(realpath "${BUILD_LABELS_PATH}")" >> "${BUILD_DEFFILE}"
         fi
+
+        export APPTAINER_TMPDIR="${RUNNER_TEMP}/apptainer-tmpdir"
+        mkdir -p "${APPTAINER_TMPDIR}"
+
+        echo "Free space in APPTAINER_TMPDIR \"${APPTAINER_TMPDIR}\":"
+        df -hlT "${APPTAINER_TMPDIR}"
 
         apptainer build "${apptainer_args[@]}" "${IMAGE_PATH}" "${BUILD_DEFFILE:-${DEFFILE}}"
         echo -n "Container size:" >&2

@@ -36,7 +36,7 @@ inputs:
     description: "Additional packages to remove"
   apt-packages-remove-exclude:
     description: "Packages to keep"
-  
+
 runs:
   using: 'composite'
   steps:
@@ -44,11 +44,11 @@ runs:
       shell: bash
       run: |
         echo "Disk usage before cleanup:"
-        df -hlT / /mnt
+        df -hlT
     - name: Remove tools
       shell: bash
       run: |
-          set -eEux -o pipefail
+          set -eu -o pipefail
           [[ "${{ inputs.rm-android }}" == "true" ]] && sudo du -s -h /usr/local/lib/android && sudo rm -rf "$_" && echo "::notice::Removed Android tools"
           [[ "${{ inputs.rm-dotnet }}" == "true" ]] && sudo du -s -h /usr/share/dotnet && sudo rm -rf "$_" && echo "::notice::Removed .NET tools"
           [[ "${{ inputs.rm-hosted-tool-cache }}" == "true" ]] && sudo du -s -h /opt/hostedtoolcache && sudo rm -rf "$_" && echo "::notice::Removed the hosted tool cache"
@@ -60,7 +60,7 @@ runs:
       shell: bash
       if: ${{ inputs.rm-apt-packages == 'true' }}
       run: |
-        set -eux -o pipefail
+        set -eu -o pipefail
         declare -a packages=()
         comm -23 <(echo "${{inputs.apt-packages-remove-default}} ${{inputs.apt-packages-remove-include}}" | tr ' ' '\n' | sort | uniq) <(echo "${{inputs.apt-packages-remove-exclude}}" | tr ' ' '\n' | sort | uniq) | while read -r package; do
           packages+=("$package")
@@ -68,7 +68,7 @@ runs:
         if [[ "${#packages[@]}" -gt 0 ]]; then
           sudo apt-get purge -yq "${packages[@]}" && echo "::notice::Removed apt packages"
           sudo apt-get autoremove -y && echo "::notice::Removed unused apt packages"
-        fi   
+        fi
     - name: Clear apt cache
       if: ${{ inputs.rm-apt-cache == 'true' || inputs.rm-apt-packages == 'true' }}
       shell: bash
@@ -78,5 +78,4 @@ runs:
       shell: bash
       run: |
         echo "Disk usage after cleanup:"
-        df -hlT / /mnt
-  
+        df -hlT
