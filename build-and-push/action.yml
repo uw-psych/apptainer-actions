@@ -63,6 +63,7 @@ inputs:
   apptainer-tmpdir:
     description: "Temporary directory for Apptainer"
     required: false
+    default: ${{ github.workspace }}/.apptainer-tmpdir
   xtrace:
     description: "Enable set -x in the script"
     default: 'false'
@@ -74,7 +75,7 @@ outputs:
 runs:
   using: 'composite'
   steps:
-    - id: env
+    - id: export-github-inputs
       name: Set environment variables
       shell: bash
       env:
@@ -102,254 +103,21 @@ runs:
         INPUT_IMAGE_PATH: ${{ inputs.image-path }}
         INPUT_IMAGE_DIR: ${{ inputs.image-dir }}
         INPUT_APPTAINER_TMPDIR: ${{ inputs.apptainer-tmpdir }}
-        INPUT_XTRACE: ${{ inputs.xtrace }}
+        XTRACE: ${{ inputs.xtrace }}
         GH_TOKEN: ${{ github.token }}
-      run: |
-        set -eu -o pipefail
-        if [[ "${INPUT_XTRACE:-false}" == "true" ]]; then
-          set -x
-          XTRACE=x
-        else
-          XTRACE=
-        fi
-        echo "XTRACE=${XTRACE}" >> "${GITHUB_ENV}"
-
-        echo INPUT_BIND="${INPUT_BIND:-}" >> "${GITHUB_ENV}"
-        echo INPUT_BUILD_ARGS="${INPUT_BUILD_ARGS:-}" >> "${GITHUB_ENV}"
-        echo INPUT_BUILD_ARG_FILE="${INPUT_BUILD_ARG_FILE:-}" >> "${GITHUB_ENV}"
-        echo INPUT_DISABLE_CACHE="${INPUT_DISABLE_CACHE:-}" >> "${GITHUB_ENV}"
-        echo INPUT_FAKEROOT="${INPUT_FAKEROOT:-}" >> "${GITHUB_ENV}"
-        echo INPUT_FIX_PERMS="${INPUT_FIX_PERMS:-}" >> "${GITHUB_ENV}"
-        echo INPUT_FORCE="${INPUT_FORCE:-}" >> "${GITHUB_ENV}"
-        echo INPUT_JSON="${INPUT_JSON:-}" >> "${GITHUB_ENV}"
-        echo INPUT_MOUNT="${INPUT_MOUNT:-}" >> "${GITHUB_ENV}"
-        echo INPUT_NOTEST="${INPUT_NOTEST:-}" >> "${GITHUB_ENV}"
-        echo INPUT_SECTION="${INPUT_SECTION:-}" >> "${GITHUB_ENV}"
-        echo INPUT_UPDATE="${INPUT_UPDATE:-}" >> "${GITHUB_ENV}"
-        echo INPUT_USERNS="${INPUT_USERNS:-}" >> "${GITHUB_ENV}"
-        echo INPUT_WRITABLE_TMPFS="${INPUT_WRITABLE_TMPFS:-}" >> "${GITHUB_ENV}"
-        echo INPUT_TAGS="${INPUT_TAGS:-}" >> "${GITHUB_ENV}"
-        echo INPUT_ADD_TAGS="${INPUT_ADD_TAGS:-}" >> "${GITHUB_ENV}"
-        echo INPUT_DEFFILE="${INPUT_DEFFILE:-}" >> "${GITHUB_ENV}"
-        echo INPUT_DEFFILES_ROOTDIR="${INPUT_DEFFILES_ROOTDIR:-}" >> "${GITHUB_ENV}"
-        echo INPUT_NAME="${INPUT_NAME:-}" >> "${GITHUB_ENV}"
-        echo INPUT_IMAGE_URL="${INPUT_IMAGE_URL:-}" >> "${GITHUB_ENV}"
-        echo INPUT_IMAGE_VERSION="${INPUT_IMAGE_VERSION:-}" >> "${GITHUB_ENV}"
-        echo BUILD_LABELS_PATH="${BUILD_LABELS_PATH:-${RUNNER_TEMP:-/tmp}/.build.labels}" >> "${GITHUB_ENV}"
-        GITHUB_TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-}}"
-        [[ -n "${GITHUB_TOKEN:-}" ]] && echo GITHUB_TOKEN="${GITHUB_TOKEN}" >> "${GITHUB_ENV}" && echo "GH_TOKEN=${GITHUB_TOKEN}" >> "${GITHUB_ENV}"
-        echo INPUT_IMAGE_DIR="${INPUT_IMAGE_DIR:-}" >> "${GITHUB_ENV}"
-        echo INPUT_IMAGE_PATH="${INPUT_IMAGE_PATH:-}" >> "${GITHUB_ENV}"
-        echo INPUT_APPTAINER_TMPDIR="${INPUT_APPTAINER_TMPDIR:-}" >> "${GITHUB_ENV}"
+      run: ${{ github.action_path }}/${{ github.action }}.sh
     - id: check-prereqs
       name: Check prerequisites
-      shell: bash
-      run: |
-        set -eu${XTRACE} -o pipefail
-        command -v jq >/dev/null 2>&1 || { echo "jq is required but not found" >&2; exit 1; }
-        command -v gh >/dev/null 2>&1 || { echo "gh is required but not found" >&2; exit 1; }
-        command -v apptainer >/dev/null 2>&1 || { echo "apptainer is required but not found" >&2; exit 1; }
-        command -v oras >/dev/null 2>&1 || { echo "oras is required but not found" >&2; exit 1; }
-        if [[ -z "${GITHUB_TOKEN:-}" ]]; then
-          GITHUB_TOKEN="$(gh auth token || true)"
-          if [[ -z "${GITHUB_TOKEN:-}" ]]; then
-            echo "GITHUB_TOKEN is required but not found" >&2
-            exit 1
-          fi
-        fi
+      run: ${{ github.action_path }}/${{ github.action }}.sh
     - id: find-deffile
       name: Find definition file
-      shell: bash
-      run: |
-        set -eu${XTRACE} -o pipefail
-        if [[ -z "${DEFFILE:=${INPUT_DEFFILE:-}}" ]]; then
-          FOUND_DEFFILES="$(find "${INPUT_DEFFILES_ROOTDIR:-.}" -type f \( -name 'Apptainer' -or -name 'Singularity' -or -name '*.def' \) -printf '%p\t%f\n' | awk -F$'\t' -v OFS=$'\t' '{print $2 == "Apptainer" ? 1: ($2 == "Singularity" ? 2 : 3), $1}' | awk -F'/' -v OFS=$'\t' '{print NF -1, $0}' | sort --key=1n,2n | cut -f3 | head -n 1 || true)"
-          [[ -z "${FOUND_DEFFILES:-}" ]] && { echo "No definition file found" >&2; exit 1; }
-          mapfile -t deffiles_array <<< "${FOUND_DEFFILES}"
-          echo "Found ${#deffiles_array[@]} definition files:" >&2
-          for deffile in "${deffiles_array[@]}"; do
-            printf "\t%q\n" "${deffile}" >&2
-          done
-          DEFFILE="${deffiles_array[0]}"
-        fi
-
-        if [[ -n "${DEFFILE:-}" ]]; then
-          echo "DEFFILE=${DEFFILE}" >> "${GITHUB_ENV}"
-        else
-          echo "No definition file found" >&2
-          exit 1
-        fi
-
-        if [[ -n "${INPUT_IMAGE_VERSION:-}" ]]; then
-          echo "IMAGE_VERSION=${INPUT_IMAGE_VERSION}" >> "${GITHUB_ENV}"
-        fi
-
-        # Set image name:
-        IMAGE_NAME="${INPUT_NAME:-$(basename "$(dirname "$(realpath "${DEFFILE}")")")}"
-        echo "IMAGE_NAME=${IMAGE_NAME}" >> "${GITHUB_ENV}"
+      run: ${{ github.action_path }}/${{ github.action }}.sh
     - id: create-labels
       name: Create image labels
-      shell: bash
-      run: |
-        set -eu${XTRACE} -o pipefail
-
-        # Get image version from the definition file if possible:
-        [[ -n "${IMAGE_VERSION:-}" ]] && IMAGE_VERSION="$(awk '/^\s*%labels/{flag=1;next}/^\s*%\S+/{flag=0}flag' "${DEFFILE}"  | grep -m1 -oiP '^\s*version\s+\K.+' | sed 's/^\s*//g; s/\s*$//g' || true)"
-
-        # Get the labels from the input and set them:
-        if [[ -n "${INPUT_LABELS:-}" ]]; then
-          echo "${INPUT_LABELS:-}" | jq -r 'to_entries[] | "\("labels." + .key |@sh) \(.value|@sh)"' >> "${BUILD_LABELS_PATH}"
-        fi
-
-        IMAGE_CREATED="${IMAGE_CREATED:-"$(date --rfc-3339=seconds --date="@$(git log -1 --format=%ct)")"}"
-        IMAGE_VERSION="${IMAGE_VERSION:-${INPUT_IMAGE_VERSION:-"$(date +%s --date="${IMAGE_CREATED}")"}}"
-        IMAGE_AUTHORS="${IMAGE_AUTHORS:-"$(gh api "/users/${GITHUB_ACTOR}" --jq 'if .name == "" then .login else .name end' || echo "${GITHUB_ACTOR:-}")"}"
-        IMAGE_SOURCE="${IMAGE_SOURCE:-https://github.com/${GITHUB_REPOSITORY}}"
-        IMAGE_REVISION="${IMAGE_REVISION:-${GITHUB_SHA}}"
-        IMAGE_URL="${IMAGE_URL:-${INPUT_IMAGE_URL:-oras://ghcr.io/${GITHUB_REPOSITORY}/${IMAGE_NAME}:${IMAGE_VERSION}}}"
-        IMAGE_VENDOR="${IMAGE_VENDOR:-${GITHUB_REPOSITORY_OWNER}}"
-        IMAGE_LICENSES="${IMAGE_LICENSES:-"$(gh api "/repos/${GITHUB_REPOSITORY}" --jq '.license.spdx_id?' || true)"}"
-        IMAGE_TITLE="${IMAGE_TITLE:-"${IMAGE_NAME:-"${GITHUB_REPOSITORY##*/}"}"}"
-
-        HELP_SECTION="$(awk '/^\s*%help/{flag=1;next}/^\s*%\S+/{flag=0}flag' Singularity | tr '\n' ' ' | sed -E 's/^\s*//g; s/\s*$//g; s/\s+/ /g' || true)"
-        if [[ -n "${HELP_SECTION}" ]]; then
-          IMAGE_DESCRIPTION="${IMAGE_DESCRIPTION:-"${HELP_SECTION}"}"
-        fi
-        IMAGE_DESCRIPTION="${IMAGE_DESCRIPTION:-"$(gh api "/repos/${GITHUB_REPOSITORY}" --jq '.description?' || true)"}"
-
-        IMAGE_FROM="$(grep -oiP '^\s*From:\s*\K\S+' "${DEFFILE}" || true)"
-        if [[ -n "${IMAGE_FROM:-}" ]]; then
-          grep -qiE '^\s*Bootstrap:\s*docker' "${DEFFILE}" && IMAGE_FROM="docker.io/${IMAGE_FROM}"
-        fi
-        IMAGE_BASE_NAME="${IMAGE_BASE_NAME:-${IMAGE_FROM:-}}"
-
-        # Write each image label to the file if the label is set:
-        test -n "${IMAGE_CREATED:-}" && echo org.opencontainers.image.created "$_" >> "${BUILD_LABELS_PATH}" && echo "IMAGE_CREATED=${IMAGE_CREATED}" >> "${GITHUB_ENV}"
-        test -n "${IMAGE_VERSION:-}" && echo org.opencontainers.image.version "$_" >> "${BUILD_LABELS_PATH}" && echo "IMAGE_VERSION=${IMAGE_VERSION}" >> "${GITHUB_ENV}"
-        test -n "${IMAGE_AUTHORS:-}" && echo org.opencontainers.image.authors "$_" >> "${BUILD_LABELS_PATH}" && echo "IMAGE_AUTHORS=${IMAGE_AUTHORS}" >> "${GITHUB_ENV}"
-        test -n "${IMAGE_SOURCE:-}" && echo org.opencontainers.image.source "$_" >> "${BUILD_LABELS_PATH}" && echo "IMAGE_SOURCE=${IMAGE_SOURCE}" >> "${GITHUB_ENV}"
-        test -n "${IMAGE_REVISION:-}" && echo org.opencontainers.image.revision "$_" >> "${BUILD_LABELS_PATH}" && echo "IMAGE_REVISION=${IMAGE_REVISION}" >> "${GITHUB_ENV}"
-        test -n "${IMAGE_URL:-}" && echo org.opencontainers.image.url "$_" >> "${BUILD_LABELS_PATH}" && echo "IMAGE_URL=${IMAGE_URL}" >> "${GITHUB_ENV}"
-        test -n "${IMAGE_VENDOR:-}" && echo org.opencontainers.image.vendor "$_" >> "${BUILD_LABELS_PATH}" && echo "IMAGE_VENDOR=${IMAGE_VENDOR}" >> "${GITHUB_ENV}"
-        test -n "${IMAGE_LICENSES:-}" && echo org.opencontainers.image.licenses "$_" >> "${BUILD_LABELS_PATH}" && echo "IMAGE_LICENSES=${IMAGE_LICENSES}" >> "${GITHUB_ENV}"
-        test -n "${IMAGE_TITLE:-}" && echo org.opencontainers.image.title "$_" >> "${BUILD_LABELS_PATH}" && echo "IMAGE_TITLE=${IMAGE_TITLE}" >> "${GITHUB_ENV}"
-        test -n "${IMAGE_DESCRIPTION:-}" && echo org.opencontainers.image.description "$_" >> "${BUILD_LABELS_PATH}" && echo "IMAGE_DESCRIPTION=${IMAGE_DESCRIPTION}" >> "${GITHUB_ENV}"
-        test -n "${IMAGE_BASE_NAME:-}" && echo org.opencontainers.image.base.name "$_" >> "${BUILD_LABELS_PATH}" && echo "IMAGE_BASE_NAME=${IMAGE_BASE_NAME}" >> "${GITHUB_ENV}"
-
-        # Reverse the order of the labels so that custom labels added as an input are not overridden by the default ones:
-        tac "${BUILD_LABELS_PATH}" > "${BUILD_LABELS_PATH}.tmp" && mv "${BUILD_LABELS_PATH}.tmp" "${BUILD_LABELS_PATH}"
+      run: ${{ github.action_path }}/${{ github.action }}.sh
     - id: build-container
       name: Build container
-      shell: bash
-      run: |
-        set -eu${XTRACE} -o pipefail
-        declare -a apptainer_args=()
-
-        for arg in bind build-args build-arg-file disable-cache fakeroot fix-perms force json mount notest section update userns writable-tmpfs; do
-          arg_envvar="${arg//-/_}"
-          arg_envvar="INPUT_${arg_envvar^^}"
-          if [[ -n "${!arg_envvar:-}" ]]; then
-            apptainer_args+=(--${arg}="${!arg_envvar}")
-          fi
-        done
-
-
-        if [[ -n "${BUILD_LABELS_PATH:-}" ]] && [[ -f "${BUILD_LABELS_PATH}" ]] && [[ -r "${BUILD_LABELS_PATH}" ]] && test $(wc -l < "${BUILD_LABELS_PATH}" || echo 0) -gt 0; then
-          BUILD_DEFFILE="${RUNNER_TEMP}/${IMAGE_NAME}.def"
-          cp "${DEFFILE}" "${BUILD_DEFFILE}"
-            printf "\n%%files\n\t%q /.build.labels\n" "$(realpath "${BUILD_LABELS_PATH}")" >> "${BUILD_DEFFILE}"
-        fi
-  
-        IMAGE_DIR="${INPUT_IMAGE_DIR:-${GITHUB_WORKSPACE}}"
-        IMAGE_PATH="${INPUT_IMAGE_PATH:-${IMAGE_DIR}/${IMAGE_NAME}.sif}"
-        mkdir -p "$(dirname "${IMAGE_PATH}")"
-
-        echo "Free space in the image directory \"${IMAGE_DIR}\":"
-        df -hlT "${IMAGE_DIR}"
-
-        if [[ -n "${INPUT_APPTAINER_TMPDIR:-}" ]]; then
-          export APPTAINER_TMPDIR="${INPUT_APPTAINER_TMPDIR}"
-          mkdir -p "${APPTAINER_TMPDIR}"
-          echo "Free space in APPTAINER_TMPDIR \"${APPTAINER_TMPDIR}\":"
-          df -hlT "${APPTAINER_TMPDIR}"
-          echo "APPTAINER_TMPDIR=${APPTAINER_TMPDIR}" >> "${GITHUB_ENV}"
-        fi
-
-        apptainer build "${apptainer_args[@]}" "${IMAGE_PATH}" "${BUILD_DEFFILE:-${DEFFILE}}"
-
-        [[ -n "${APPTAINER_TMPDIR:-}" ]] && [[ -d "${APPTAINER_TMPDIR}" ]] && rm -rf "${APPTAINER_TMPDIR}"
-
-        echo -n "Container size:" >&2
-        du -h "${IMAGE_PATH}" | cut -f1 >&2
-
-        echo "Container labels:" >&2
-        apptainer inspect "${IMAGE_PATH}" >&2
-
-        echo "IMAGE_PATH=${IMAGE_PATH}" >> "${GITHUB_ENV}"
-
+      run: ${{ github.action_path }}/${{ github.action }}.sh
     - id: push-container
       name: Push container
-      shell: bash
-      run: |
-        set -eu${XTRACE} -o pipefail
-
-        # Get the image tags:
-        declare -a image_tags=()
-        image_tags+=(${INPUT_TAGS:-}) # Add the tags from the input
-        image_tags+=(${IMAGE_VERSION:-}) # Add the version as a tag
-        image_tags+=(${INPUT_ADD_TAGS:-}) # Add the additional tags to the list of tags
-
-        # If we have a semantic version, and if it is the newest version that is not a pre-release, add the "latest" tag:
-        if [[ "${IMAGE_VERSION}" =~ ^v?(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
-          SEMANTICALLY_NEWEST_TAG="$( { echo "${IMAGE_VERSION}";
-            IMAGE_REPO_URL="${IMAGE_URL#oras://ghcr.io/}"
-            IMAGE_REPO_URL="${IMAGE_REPO_URL%:*}"
-            IMAGE_REPO_URL="$(jq -rn --arg x "${IMAGE_REPO_URL}" '$x|@uri' || true)"
-            gh api "/users/${GITHUB_REPOSITORY_OWNER}/packages/container/${GITHUB_REPOSITORY#*/}%2F${IMAGE_NAME}/versions" --jq '.[].metadata.container.tags[]' \
-            || true; } \
-            | grep -P '^v?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$' \
-            | grep -v '\-.*$' | sed -E 's/^v?(.*)$/\1\t\0/g' \
-            | tr - \~ \
-            | sort -k1V \
-            | tr \~ - \
-            | cut -f2 \
-            | tail -n1 \
-            || true)"
-          if [[ "${SEMANTICALLY_NEWEST_TAG}" == "${IMAGE_VERSION}" ]]; then
-            image_tags+=("latest")
-          fi
-        fi
-
-        # Remove duplicate tags:
-        image_tags=($(echo "${image_tags[@]}" |  tr [:space:] '\n' | awk '!a[$0]++'))
-
-        case "${IMAGE_URL:-}" in
-          oras://ghcr.io/*)
-
-            # Log in:
-            apptainer remote login -u "${GITHUB_ACTOR}" -p "${GITHUB_TOKEN}" oras://ghcr.io
-
-            # Push the image:
-            echo "Pushing image to \"${IMAGE_URL}\"" >&2 && apptainer push -U "${IMAGE_PATH}" "${IMAGE_URL}"
-
-            oras manifest fetch -u "${GITHUB_ACTOR}" -p "${GITHUB_TOKEN}" "${IMAGE_URL#oras://}" > "${RUNNER_TEMP}/manifest.json"
-            labels_json="$(apptainer inspect --json --labels "${IMAGE_PATH}" | jq -r '.data.attributes.labels' || true)"
-            if [[ -n "${labels_json}" ]]; then
-              jq --argjson labels "${labels_json}" '.annotations += $labels' "${RUNNER_TEMP}/manifest.json" > "${RUNNER_TEMP}/manifest-updated.json"
-              oras manifest push -u "${GITHUB_ACTOR}" -p "${GITHUB_TOKEN}" --media-type 'application/vnd.oci.image.manifest.v1+json' "${IMAGE_URL#oras://}" "${RUNNER_TEMP}/manifest-updated.json"
-            fi
-            ;;
-          *)
-            echo "::error::Invalid image URL: ${IMAGE_URL}"
-            exit 1
-            ;;
-        esac
-        # Tag the image with additional tags if any:
-        if (( "${#image_tags[@]}" > 1 )); then
-          echo "Tagging the image with additional tags: ${image_tags[@]:1}" >&2
-          oras tag -u "${GITHUB_ACTOR}" -p "${GITHUB_TOKEN}" "${IMAGE_URL#oras://}" ${image_tags[@]}
-        fi
-
-        echo "image-url=${IMAGE_URL}" >> "${GITHUB_OUTPUT}"
-        echo "Done pushing the image" >&2
-        echo "::notice::Pushed image to \"${IMAGE_URL}\""
+      run: ${{ github.action_path }}/${{ github.action }}.sh
