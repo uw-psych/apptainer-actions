@@ -42,7 +42,7 @@ runs:
 
   steps:
     - name: Inform of using different action
-      shelL: bash
+      shell: bash
       run: |
         echo "::warning::Deprecated - delegating to easimon/maximize-build-space for this task"
     - name: Clear up space
