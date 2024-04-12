@@ -36,69 +36,20 @@ inputs:
     description: "Additional packages to remove"
   apt-packages-remove-exclude:
     description: "Packages to keep"
-  
+
 runs:
   using: 'composite'
+
   steps:
-    - name: Show disk usage
-      shell: bash
+    - name: Inform of using different action
+      shelL: bash
       run: |
-        echo "Disk usage before cleanup:"
-        df -hlT / /mnt
-    - name: Remove tools
-      shell: bash
-      if: ${{ inputs.rm-android == 'true' || inputs.rm-dotnet == 'true' || inputs.rm-haskell == 'true' || inputs.rm-hosted-tool-cache == 'true' }}
-      run: |
-          set -eEux -o pipefail
-
-          function rm_with_usage() {
-            while (( $# > 0 )); do
-              if [[ -d "$1" ]]; then
-                local device
-                local -i pre=0 post=0 diff=0
-                IFS=' ' read device pre < <(df --output=source,avail "$1" | tail +2 | head -n 1)
-                sudo rm -rf "$1"
-                IFS=' ' read post < <(df --output=avail "${device}" | tail +2 | head -n 1)
-                # Convert to human readable format
-                diff=$((post - pre))
-                echo "::notice::Removed directory \"$1\" ($(numfmt --to=iec --from-unit=Ki "${diff}"))"
-              else
-                echo "Directory $1 does not exist"
-              fi 
-              shift
-            done
-          }
-
-          [[ "${{ inputs.rm-android }}" == "true" ]] && rm_with_usage /usr/local/lib/android
-          [[ "${{ inputs.rm-dotnet }}" == "true" ]] && rm_with_usage /usr/share/dotnet
-          [[ "${{ inputs.rm-hosted-tool-cache }}" == "true" ]] && rm_with_usage /opt/hostedtoolcache
-          [[ "${{ inputs.rm-powershell }}" == "true" ]] && rm_with_usage /usr/local/share/powershell
-          [[ "${{ inputs.rm-swift }}" == "true" ]] && rm_with_usage /usr/share/swift
-          [[ "${{ inputs.rm-chromium }}" == "true" ]] && rm_with_usage /usr/local/share/chromium
-          [[ "${{ inputs.rm-azure-cli }}" == "true" ]] && rm_with_usage /opt/az /usr/share/az_*
-      
-    - name: Remove apt packages
-      shell: bash
-      if: ${{ inputs.rm-apt-packages == 'true' }}
-      run: |
-        set -eux -o pipefail
-        if [[ "${{ inputs.rm-apt-packages }}" == "true" ]]; then
-          declare -a packages=()
-          comm -23 <(echo "${{inputs.apt-packages-remove-default}} ${{inputs.apt-packages-remove-include}}" | tr ' ' '\n' | sort | uniq) <(echo "${{inputs.apt-packages-remove-exclude}}" | tr ' ' '\n' | sort | uniq) | while read -r package; do
-            packages+=("$package")
-          done
-          if [[ "${#packages[@]}" -gt 0 ]]; then
-            sudo apt-get purge -yq "${packages[@]}"
-            sudo apt-get autoremove -y
-          fi
-    - name: Clear apt cache
-      if: ${{ inputs.rm-apt-cache == 'true' || inputs.rm-apt-packages == 'true' }}
-      shell: bash
-      run: |
-        sudo apt-get clean -y && echo "::notice::Cleaned apt cache"
-    - name: Show disk usage
-      shell: bash
-      run: |
-        echo "Disk usage after cleanup:"
-        df -hlT / /mnt
-  
+        echo "::warning::Deprecated - delegating to easimon/maximize-build-space for this task"
+    - name: Clear up space
+      uses: easimon/maximize-build-space@master
+      with:
+          remove-dotnet: "${{ inputs.rm-dotnet }}"
+          remove-android: "${{ inputs.rm-android }}"
+          remove-haskell: 'true'
+          remove-codeql: 'true'
+          remove-docker-images: 'true'

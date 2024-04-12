@@ -10,8 +10,16 @@ inputs:
     description: "Path to the file containing build-time variables"
   disable-cache:
     description: "Do not use cache when building the image"
+<<<<<<< HEAD
     default: "true"
   fakeroot:
+||||||| 5d3bbbe
+    default: 'true'
+   fakeroot:
+=======
+    default: 'true'
+  fakeroot:
+>>>>>>> fix-inputs
     description: "Build with the appearance of running as root (default when building from a definition file unprivileged)"
   fix-perms:
     description: "Ensure owner has rwX permissions on all container content for oci/docker sources"
@@ -32,7 +40,12 @@ inputs:
     description: "Build with the appearance of running as root (default when building from a definition file unprivileged)"
   writable-tmpfs:
     description: "During the %test section, makes the file system accessible as read-write with non  persistent data (with overlay support only)"
+<<<<<<< HEAD
 
+||||||| 5d3bbbe
+ 
+=======
+>>>>>>> fix-inputs
   # Metadata options
   tags:
     description: "List of tags (will replace the default tags)"
@@ -55,6 +68,19 @@ inputs:
   image-version:
     description: "Version of the image"
     required: false
+  image-path:
+    description: "Path to the built image"
+    required: false
+  image-dir:
+    description: "Directory where the image will be built"
+    required: false
+  apptainer-tmpdir:
+    description: "Temporary directory for Apptainer"
+    required: false
+    default: ${{ github.workspace }}/.apptainer-tmpdir
+  xtrace:
+    description: "Enable set -x in the script"
+    default: 'false'
 
 outputs:
   image-url:
@@ -64,7 +90,7 @@ runs:
   using: "composite"
 
   steps:
-    - id: env
+    - id: export-github-inputs
       name: Set environment variables
       env:
         INPUT_BIND: ${{ inputs.bind }}
@@ -85,65 +111,27 @@ runs:
         INPUT_ADD_TAGS: ${{ inputs.add-tags }}
         INPUT_DEFFILE: ${{ inputs.deffile }}
         INPUT_DEFFILES_ROOTDIR: ${{ inputs.deffiles-rootdir }}
-        INPUT_IMAGE_NAME: ${{ inputs.image-name }}
+        INPUT_NAME: ${{ inputs.name }}
         INPUT_IMAGE_URL: ${{ inputs.image-url }}
         INPUT_IMAGE_VERSION: ${{ inputs.image-version }}
-        INPUT_BUILD_LABELS_PATH: ${{ runner.temp }}/.build.labels
+        INPUT_IMAGE_PATH: ${{ inputs.image-path }}
+        INPUT_IMAGE_DIR: ${{ inputs.image-dir }}
+        INPUT_APPTAINER_TMPDIR: ${{ inputs.apptainer-tmpdir }}
+        XTRACE: ${{ inputs.xtrace }}
         GH_TOKEN: ${{ github.token }}
-        XTRACE: 1
-      shell: bash
-      run: |
-        set -eEx -o pipefail
-        SET_GITHUB_ENV="${RUNNER_TEMP}/set-github-env.sh"
-        for var in ${!INPUT_@} XTRACE GH_TOKEN SET_GITHUB_ENV; do
-          [[ -n "${!var}" ]] && echo "${var}=${!var}" | tee -a "${GITHUB_ENV}" "${SET_GITHUB_ENV}"
-        done
-      
+      run: ${{ github.action_path }}/${{ github.action }}.sh
     - id: check-prereqs
       name: Check prerequisites
-      shell: bash
-      run: |
-        command -v jq >/dev/null 2>&1 || { echo "jq is required but not found" >&2; exit 1; }
-        command -v gh >/dev/null 2>&1 || { echo "gh is required but not found" >&2; exit 1; }
-        command -v apptainer >/dev/null 2>&1 || { echo "apptainer is required but not found" >&2; exit 1; }
-        command -v oras >/dev/null 2>&1 || { echo "oras is required but not found" >&2; exit 1; }
-
-    - name: Find definition file
-      shell: bash
-      run: |
-        source "${GITHUB_ACTION_PATH}/scripts/find-deffile.sh"
-
-    - name: Create image labels
-      shell: bash
-      run: |
-        source "${GITHUB_ACTION_PATH}/scripts/create-labels.sh"
-
-    - name: Build container
-      shell: bash
-      run: |
-        source "${GITHUB_ACTION_PATH}/scripts/build-container.sh"
-
-    - name: Push container
-      shell: bash
-      run: source "${GITHUB_ACTION_PATH}/scripts/push-container.sh"
-
-    - name: Tag container
-      shell: bash
-      run: source "${GITHUB_ACTION_PATH}/scripts/tag-container.sh"
-
-    - name: Update OCI manifest
-      shell: bash
-      run: |
-        source "${GITHUB_ACTION_PATH}/scripts/update-oci-manifest.sh"
-    
-    - name: Delete image
-      shell: bash
-      run: |
-        rm -f "${INPUT_IMAGE_PATH}" "${INPUT_BUILD_LABELS_PATH}"
-    - name: Clear GITHUB_ENV
-      shell: bash
-      run: |
-        source "${GITHUB_ACTION_PATH}/scripts/clear-env.sh"
-  
-
-    
+      run: ${{ github.action_path }}/${{ github.action }}.sh
+    - id: find-deffile
+      name: Find definition file
+      run: ${{ github.action_path }}/${{ github.action }}.sh
+    - id: create-labels
+      name: Create image labels
+      run: ${{ github.action_path }}/${{ github.action }}.sh
+    - id: build-container
+      name: Build container
+      run: ${{ github.action_path }}/${{ github.action }}.sh
+    - id: push-container
+      name: Push container
+      run: ${{ github.action_path }}/${{ github.action }}.sh
