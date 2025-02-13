@@ -60,7 +60,7 @@ runs:
           apptainer --version >&2
           echo "apptainer-version=$(apptainer version)" >> "${GITHUB_OUTPUT}"
           echo "::notice::Installed Apptainer version: $(apptainer version)"
-    
+
     - name: Install oras
       env:
         ORAS_VERSION: ${{ inputs.oras-version }}
@@ -95,7 +95,8 @@ runs:
         gh release download "${TAGNAME}" --repo "${RELEASE_REPO}" --pattern '*linux_amd64.tar.gz' --skip-existing -O "${DOWNLOAD_PATH}"
 
         # Install the executable:
-        sudo tar -xvf "${DOWNLOAD_PATH}" oras -C /usr/local/bin/ && sudo chmod +x /usr/local/bin/oras
+        sudo tar -xvf "${DOWNLOAD_PATH}" -C /usr/local/bin oras && sudo chmod +x /usr/local/bin/oras
+
 
         # Print the version:
         oras version >&2
